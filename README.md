@@ -1,3 +1,3 @@
 # DataStore
 
-A CRUD wrapper for a persistent data store using a file and index based storage
+A type based data store
