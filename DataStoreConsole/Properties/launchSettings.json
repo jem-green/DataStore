@@ -1,7 +1,8 @@
 {
   "profiles": {
     "StorageConsole": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--filepath \"C:\\SOURCE\\GIT\\cs.net\\DataStore\\DataStoreTest\\bin\\Debug\\net6.0\" --filename \"datastore\" update --row \"0\" --field \"id\" --value \"101\" --field \"name\" --value \"jeremy\" "
     }
   }
 }

@@ -1,5 +1,7 @@
   CREATE -N datastore.dbf -k "integer" -v 0 -- create new row with field "Integer" with a value of 0
 
+  CREATE -N datastore.dbf -d "integer=0,string='hello'"
+
   READ -N datastore.dbf -r 0	-- read row zero
   
   UPDATE -N datastore.dbf -r 0 -k "integer" -v 0  -- update row zero field "Integer" with a value of 0
@@ -9,6 +11,11 @@
   GET -N datastore.dbf ls
   
   SET -N datastore.dbf -n "name" -T "integer" -L 0
+
+
+
+
+
   
   Thoughts are
   how do you do a full insert

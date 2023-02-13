@@ -40,6 +40,7 @@ namespace DatastoreLibrary
         
         00 - unsigned int16 - number of records _size
         00 - unsigned int16 - pointer to current record _pointer
+        00 - unsigned int16 - pointer to end of field property _top
         00 - unsigned int16 - pointer to start of data _data
         
         Field
@@ -63,7 +64,7 @@ namespace DatastoreLibrary
         bytes - string
         ...
 
-        From the type definition
+        From the TypeCode definition
         
         Empty	    0 - A null reference.
         Object	    1 - A general type representing any reference or value type not explicitly represented by another TypeCode.
@@ -143,6 +144,8 @@ namespace DatastoreLibrary
         private readonly UInt16 _start = 7;     // Pointer to the start of the field area
         private UInt16 _pointer = 7;            // Pointer to current element offset from the data area
         private UInt16 _data = 7;               // pointer to start of data area
+        private UInt16 _top = 7;                // Pointer to end of field area
+
         private byte _items = 0;                // number of field property items
         private Property[] _properties;         // Cache of fields
 
@@ -380,29 +383,29 @@ namespace DatastoreLibrary
                 // Assume we only need to read the data and not the index
 
                 BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                
-                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);                      // Move to position of the current
-                _size = binaryReader.ReadUInt16();                                      // Read in the size of data
-                _pointer = binaryReader.ReadUInt16();                                   // Read in the current record
-                _data = binaryReader.ReadUInt16();                                      // Read in the data pointer
-                _items = binaryReader.ReadByte();                                       // Read in the number of fields
+                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);      // Move to position of the current
+                _size = binaryReader.ReadUInt16();                      // Read in the size of data
+                _pointer = binaryReader.ReadUInt16();                   // Read in the current record
+                _data = binaryReader.ReadUInt16();                      // Read in the data pointer
+                _top = binaryReader.ReadUInt16();                       // Read in the top pointer
+                _items = binaryReader.ReadByte();                       // Read in the number of fields
 
                 Array.Resize(ref _properties, _items);
                 UInt16 pointer = 0;
                 for (int count = 0; count < _items; count++)
                 {
-                    binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);   // Move to the field as may have been updated
-                    byte offset = binaryReader.ReadByte();                              // Read the field offset
-                    byte flag = binaryReader.ReadByte();                                // Read the status flag
-                    byte order = binaryReader.ReadByte();                               // Read the field order
-                    TypeCode typeCode = (TypeCode)binaryReader.ReadByte();              // Read the field Type
-                    sbyte length = binaryReader.ReadSByte();                            // Read the field Length
-                    bool primary = false;                                               // Read if the primary key
+                    binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);    // Move to the field as may have been updated
+                    byte offset = binaryReader.ReadByte();                      // Read the field offset
+                    byte flag = binaryReader.ReadByte();                        // Read the status flag
+                    byte order = binaryReader.ReadByte();                       // Read the field order
+                    TypeCode typeCode = (TypeCode)binaryReader.ReadByte();      // Read the field Type
+                    sbyte length = binaryReader.ReadSByte();                    // Read the field Length
+                    bool primary = false;                                       // Read if the primary key
                     if (binaryReader.ReadByte() == 1)
                     {
                         primary = true;
                     }
-                    string name = binaryReader.ReadString();                            // Read the field Name
+                    string name = binaryReader.ReadString();                    // Read the field Name
                     if (flag == 0)  // Not deleted or spare so add rather than skip
                     {
                         Property field = new Property(name, flag, order, typeCode, length, primary);
@@ -423,8 +426,6 @@ namespace DatastoreLibrary
         {
             bool @new = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
-            string indexPath = System.IO.Path.Combine(_path, _index);
-
             if (File.Exists(filenamePath + ".dbf") == false)
             {
                 BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
@@ -432,20 +433,15 @@ namespace DatastoreLibrary
 
                 _size = 0;                                  // Reset the number of elements
                 _pointer = 0;                               // Offset from the data areas so zero
-                _data = _start;                             // Start of the field area 3 x 16 bit + 1 x 8 bit = 7 bytes
+                _data = _start;                             // Start of the field area 3 x 16 bit + 1 x 8 bit = 
                 _items = 0;                                 // Number of fields
 
                 binaryWriter.Write(_size);                  // Write the size of data
                 binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
                 binaryWriter.Write(_data);                  // Write pointer to new data area
+                binaryWriter.Write(_top);                   // Write pointer to top field area
                 binaryWriter.Write(_items);                 // write new number of fields
                 binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
-                binaryWriter.Close();
-
-                // Create the index
-
-                binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
-                binaryWriter.BaseStream.SetLength(0);
                 binaryWriter.Close();
 
                 @new = true;
@@ -476,6 +472,7 @@ namespace DatastoreLibrary
                 binaryWriter.Write(_size);                  // Write the size of data
                 binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
                 binaryWriter.Write(_data);                  // Write pointer to new data area
+                binaryWriter.Write(_top);                   // Write pointer to top field area
                 binaryWriter.Write(_items);                 // write new number of fields
                 binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
                 binaryWriter.Close();
@@ -504,7 +501,7 @@ namespace DatastoreLibrary
             // Reset the file
             string filenamePath = System.IO.Path.Combine(_path, _name);
             string indexPath = System.IO.Path.Combine(_path, _index);
-            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
 
             _size = 0;                                  // Zero the sizw of the data
@@ -513,11 +510,11 @@ namespace DatastoreLibrary
             binaryWriter.Write(_size);                  // Write the size of data
             binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
             binaryWriter.BaseStream.SetLength(_data);   // Fix the size as we are resetting
-            binaryWriter.Close();
+            binaryWriter.Close();                       //
 
             // Re-create the index
 
-            binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
+            binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
             binaryWriter.BaseStream.SetLength(0);
             binaryWriter.Close();
             clear = true;
@@ -575,82 +572,68 @@ namespace DatastoreLibrary
                 // The structure repeats
                 //
 
-                if (_size == 0)
+                byte order = 0;
+                TypeCode typeCode = field.Type;
+
+                // Update the local cache
+
+                Array.Resize(ref _properties, _items + 1);
+                _properties[_items] = field;
+
+                // Calcualte the data size
+
+                int offset = 0;
+                int length = field.Name.Length;
+                offset = offset + 6 + LEB128.Size(length) + length;     // 6 = number of bytes before string name
+
+                // check if the additonal fields will overrun the data
+
+                if (((_top + offset) < _data) || (_size == 0))
                 {
-                    if (field.Name.Length > 0)
+                    // move the data
+
+                    // this would need to shift the data area upwards to accomodate the
+                    // new field entry. Seems like a design problem, but may be somthing
+                    // to start with assuming that fields are not generally added later.
+                    // Could create some spare space when we initialise the database so
+                    // fields can get added into the space.
+
+                    // Add the new field
+
+                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    binaryWriter.Seek(_data, SeekOrigin.Begin);
+
+                    byte flag = 0;                                  // Normal
+                    binaryWriter.Write((byte)offset);               // write the offset to next field
+                    binaryWriter.Write(flag);                       // write the field Flag
+                    binaryWriter.Write(order);                      // write the field Order
+                    binaryWriter.Write((byte)typeCode);             // write the field Type
+                    binaryWriter.Write((sbyte)field.Length);        // write the field Length
+                    if (field.Primary == true)                      // write the primary key indicator (byte)
                     {
-                        if (field.Type != TypeCode.Empty)
-                        {
-
-                            byte order = 0;
-                            TypeCode typeCode = field.Type;
-
-                            // Update the local cache
-
-                            Array.Resize(ref _properties, _items + 1);
-                            _properties[_items] = field;
-
-                            // Calcualte the data size
-
-                            int offset = 0;
-                            int length = field.Name.Length;
-                            offset = offset + 6 + LEB128.Size(length) + length;     // 6 = number of bytes before string name
-
-                            // move the data
-
-                            // this would need to shift the data area upwards to accomodate the
-                            // new field entry. Seems like a design problem, but may be somthing
-                            // to start with assuming that fields are not generally added later. Could
-                            // create some spare space when we initialise the database so fields
-                            // can get added into the space.
-
-                            // Add the new field
-
-                            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                            binaryWriter.Seek(_data, SeekOrigin.Begin);
-
-                            byte flag = 0;                                  // Normal
-                            binaryWriter.Write((byte)offset);               // write the offset to next field
-                            binaryWriter.Write(flag);                       // write the field Flag
-                            binaryWriter.Write(order);                      // write the field Order
-                            binaryWriter.Write((byte)typeCode);             // write the field Type
-                            binaryWriter.Write((sbyte)field.Length);        // write the field Length
-                            if (field.Primary == true)                      // write the primary key indicator (byte)
-                            {
-                                binaryWriter.Write((byte)1);
-                            }
-                            else
-                            {
-                                binaryWriter.Write((byte)0);
-                            }
-
-                            binaryWriter.Write(field.Name);                 // Write the field Name
-
-                            _data = (UInt16)(_data + offset);               // The data area is moved up as fields are added
-                            _items = (byte)(_items + 1);                    // The number of fields is increased
-
-                            binaryWriter.Seek(0, SeekOrigin.Begin);         //
-                            binaryWriter.Write(_size);                      // Skip over just re-write size
-                            binaryWriter.Write(_pointer);                   // Write pointer to new current record
-                            binaryWriter.Write(_data);                      // Write pointer to new data area
-                            binaryWriter.Write(_items);                     // write new number of records
-                            binaryWriter.Close();                           //
-                            binaryWriter.Dispose();                         //
-
-                        }
-                        else
-                        {
-                            throw new ArgumentException("Field name not defined");
-                        }
+                        binaryWriter.Write((byte)1);
                     }
                     else
                     {
-                        throw new ArgumentException("Field type not defined");
+                        binaryWriter.Write((byte)0);
                     }
+
+                    binaryWriter.Write(field.Name);                 // Write the field Name
+
+                    _data = (UInt16)(_data + offset);               // The data area is moved up as fields are added
+                    _items = (byte)(_items + 1);                    // The number of fields is increased
+
+                    binaryWriter.Seek(0, SeekOrigin.Begin);         //
+                    binaryWriter.Write(_size);                      // Skip over just re-write size
+                    binaryWriter.Write(_pointer);                   // Write pointer to new current record
+                    binaryWriter.Write(_data);                      // Write pointer to new data area
+                    binaryWriter.Write(_items);                     // write new number of records
+                    binaryWriter.Close();                           //
+                    binaryWriter.Dispose();                         //
                 }
                 else
                 {
-                    throw new InvalidOperationException("Cannot add field as data already written");
+                    throw new InvalidOperationException("Cannot add field as Data already written");
                 }
             }
         }
@@ -840,9 +823,8 @@ namespace DatastoreLibrary
                         // what it should do it mark the field as deleted and 
                         // insert the new field at the end if no data written yet
 
-                        if (_size == 0)
+                        if ((_top + offset) < _data)
                         {
-
                             BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
                             binaryWriter.Seek(_data, SeekOrigin.Begin);
 
@@ -870,6 +852,7 @@ namespace DatastoreLibrary
                             binaryWriter.Write(_size);                      // Write the number of records - size
                             binaryWriter.Write(_pointer);                   // Write pointer to new current record but this is offset from _data
                             binaryWriter.Write(_data);                      // Write pointer to new data area
+                            binaryWriter.Write(_top);                       // Write pointer to top of field
                             binaryWriter.Write(_items);                     // write new number of records
                             binaryWriter.Close();                           //
                             binaryWriter.Dispose();                         //
@@ -880,7 +863,7 @@ namespace DatastoreLibrary
                         }
                         else
                         {
-                            throw new InvalidOperationException("Cannot add field as Data already written");
+                            throw new InvalidOperationException("Cannot add field insufficient space");
                         }
                     }
                     else
@@ -1000,7 +983,7 @@ namespace DatastoreLibrary
 
                 // Write the header
 
-                BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
                 binaryWriter.Seek(0, SeekOrigin.Begin);                         // Move to start of the file
                 _size++;                                                        // Update the size
                 binaryWriter.Write(_size);                                      // Write the size
@@ -1078,65 +1061,62 @@ namespace DatastoreLibrary
 
             lock (_lockObject)
             {
-                if (_size > 0)
+                if ((index >= 0) && (index <= _size))
                 {
-                    if ((index >= 0) && (index <= _size))
+                    data = new object[Items];
+                    string filenamePath = System.IO.Path.Combine(_path, _name);
+                    string indexPath = System.IO.Path.Combine(_path, _index);
+
+                    // Need to search the index file
+
+                    BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
+
+                    indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
+                    binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
+
+                    byte flag = binaryReader.ReadByte();
+                    for (int count = 0; count < _items; count++)
                     {
-                        data = new object[Items];
-                        string filenamePath = System.IO.Path.Combine(_path, _name);
-                        string indexPath = System.IO.Path.Combine(_path, _index);
-
-                        // Need to search the index file
-
-                        BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                        BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-
-                        indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
-                        UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
-                        binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
-
-                        byte flag = binaryReader.ReadByte();
-                        for (int count = 0; count < _items; count++)
+                        switch (_properties[count].Type)
                         {
-                            switch (_properties[count].Type)
-                            {
-                                case TypeCode.Int16:
-                                    {
-                                        data[count] = binaryReader.ReadInt16();
-                                        break;
-                                    }
-                                case TypeCode.Int32:
-                                    {
-                                        data[count] = binaryReader.ReadInt32();
-                                        break;
-                                    }
-                                case TypeCode.String:
-                                    {
-                                        // should not need to lenght check again here
-                                        data[count] = binaryReader.ReadString();
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-                            }
+                            case TypeCode.Int16:
+                                {
+                                    data[count] = binaryReader.ReadInt16();
+                                    break;
+                                }
+                            case TypeCode.Int32:
+                                {
+                                    data[count] = binaryReader.ReadInt32();
+                                    break;
+                                }
+                            case TypeCode.String:
+                                {
+                                    // should not need to lenght check again here
+                                    data[count] = binaryReader.ReadString();
+                                    break;
+                                }
+                            default:
+                                {
+                                    throw new NotImplementedException();
+                                }
                         }
-                        binaryReader.Close();
-                        binaryReader.Dispose();
-                        indexReader.Close();
-                        indexReader.Dispose();
                     }
-                    else
-                    {
-                        throw new IndexOutOfRangeException();
-                    }
+                    binaryReader.Close();
+                    binaryReader.Dispose();
+                    indexReader.Close();
+                    indexReader.Dispose();
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException();
                 }
             }
             return (data);
         }
 
-		/// <summary>
+        /// <summary>
         /// Update the record by index
         /// </summary>
         /// <param name="record"></param>
@@ -1201,8 +1181,8 @@ namespace DatastoreLibrary
                         }
                     }
 
-                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    if (offset >= length)
+                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
+                    if (offset > length)
                     {
                         // If there is space write the data
 
@@ -1356,7 +1336,7 @@ namespace DatastoreLibrary
                 {
                     // Write the header
 
-                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
                     binaryWriter.Seek(0, SeekOrigin.Begin);     // Move to start of the file
                     _size--;
                     binaryWriter.Write(_size);                  // Write the new size

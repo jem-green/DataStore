@@ -2,32 +2,37 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.Serialization;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
-namespace StorageLibrary
+namespace DatastoreLibrary
 {
-    public class PersistentDataStore
+    public class PersistentDatastore
     {
         #region Fields
 
         private string _path = "";
-        private string _name = "Storage";
+        private string _name = "";
         private DataHandler _handler;
+        private bool _open = false;
 
         public struct FieldType
         {
             string _name;
-            string _type;
             sbyte _length;
+            string _type;
 
-            internal FieldType(string name, string type, sbyte length)
+            public FieldType(string name, string type, sbyte length)
             {
                 _name = name;
                 _type = type;
                 _length = length;
             }
 
-            internal sbyte Length
+            public sbyte Length
             {
                 set
                 {
@@ -39,7 +44,7 @@ namespace StorageLibrary
                 }
             }
 
-            internal string Name
+            public string Name
             {
                 set
                 {
@@ -51,8 +56,7 @@ namespace StorageLibrary
                 }
             }
 
-
-            internal string Type
+            public string Type
             {
                 set
                 {
@@ -81,14 +85,14 @@ namespace StorageLibrary
         /// <summary>
         /// Open or create a new data store
         /// </summary>
-        public PersistentDataStore()
+        public PersistentDatastore()
         {
             // Reset, Open or create a new store based on the type
 
             _handler = new DataHandler(_path, _name);
             if (_handler.Open() == false)
             {
-                _handler.Reset();
+                _handler.New();
             }
         }
 
@@ -96,12 +100,16 @@ namespace StorageLibrary
         /// Reset, Open or create a new store based on the type
         /// </summary>
         /// <param name="reset"></param>
-        public PersistentDataStore(bool reset)
+        public PersistentDatastore(bool reset)
         {
             // Reset, Open or create a new store based on the type
 
             _handler = new DataHandler(_path, _name);
-            if ((_handler.Open() == false) || (reset == true))
+            if (_handler.Open() == false)
+            {
+                _handler.New();
+            }
+            else if (reset == true)
             {
                 _handler.Reset();
             }
@@ -113,13 +121,29 @@ namespace StorageLibrary
         /// <param name="path"></param>
         /// <param name="filename"></param>
         /// <param name="reset"></param>
-        public PersistentDataStore(string path, string filename, bool reset)
+        public PersistentDatastore(string path, string filename, bool reset)
         {
-            _path = path;
-            _name = filename;
+            if ((path != null) && (path.Length > 0))
+            {
+                _path = path;
+            }
+
+            if ((filename != null) && (filename.Length > 0))
+            {
+                _name = filename;
+            }
 
             _handler = new DataHandler(_path, _name);
-            if ((_handler.Open() == false) || (reset == true))
+            if (_open == false)
+            {
+                _open = _handler.Open();
+            }
+
+            if (_open == false)
+            {
+                _handler.New();
+            }
+            else if (reset == true)
             {
                 _handler.Reset();
             }
@@ -144,16 +168,66 @@ namespace StorageLibrary
             }
         }
 
+        public bool IsOpen
+        {
+            get
+            {
+                return(_open);
+            }
+        }
+
         #endregion
         #region Methods
+        #region General
+        public void New()
+        {
+            _handler.New();
+        }
+
+        public void Open()
+        {
+            if (_open == false)
+            {
+                _open =_handler.Open();
+            }
+        }
+
+        public void Close()
+        {
+            if (_open == true)
+            {
+                _handler.Close();
+            }
+        }
+
+        public void Reset()
+        {
+            if (_open == true)
+            {
+                _handler.Reset();
+            }
+        }
+
+        #endregion
+        #region Field
+
+        public void Add(FieldType fieldType)
+        {
+            Add(fieldType.Name, fieldType.Type, fieldType.Length);
+        }
 
         public void Add(string name, string type, sbyte length)
+        {
+            Add(name, TypeLookup(type), length);
+        }
+
+        public void Add(string name, TypeCode typeCode, sbyte length)
         {
             if (_handler != null)
             {
                 DataHandler.Property field = new DataHandler.Property();
                 field.Name = name;
-                field.Type = TypeLookup(type);
+                field.Type = typeCode;
                 if (field.Type == TypeCode.String)
                 {
                     field.Length = length;
@@ -162,21 +236,41 @@ namespace StorageLibrary
             }
         }
 
-        public void Remove(int item)
+        public void Remove(int item, bool all)
         {
             if (_handler != null)
             {
-                _handler.RemoveAt(item);
+                if (all == true)
+                {
+                    for (int i = _handler.Items; i>=0;  i--)
+                    {
+                        _handler.RemoveAt(i);
+                    }
+                }
+                else
+                {
+                    _handler.RemoveAt(item);
+                }
             }
         }
 
+        public void Set(int item, FieldType fieldType)
+        {
+            Set(item, fieldType.Name, fieldType.Type, fieldType.Length);
+        }
+
         public void Set(int item, string name, string type, sbyte length)
+        {
+            Set(item, name, TypeLookup(type), length);
+        }
+
+        public void Set(int item, string name, TypeCode typeCode, sbyte length)
         {
             if (_handler != null)
             {
                 DataHandler.Property field = new DataHandler.Property();
                 field.Name = name;
-                field.Type = TypeLookup(type);
+                field.Type = typeCode;
                 if (field.Type == TypeCode.String)
                 {
                     field.Length = length;
@@ -185,41 +279,172 @@ namespace StorageLibrary
             }
         }
 
-        public void Set(int item, FieldType fieldType)
-        {
-            if (_handler != null)
-            {
-                DataHandler.Property field = new DataHandler.Property();
-                field.Name = fieldType.Name;
-                field.Type = TypeLookup(fieldType.Type);
-                if (field.Type == TypeCode.String)
-                {
-                    field.Length = fieldType.Length;
-                }
-                _handler.Set(field, item);
-            }
-        }
-
         // WHat do we return here an object / stuc with the field structure
 
-        public FieldType Get(int item)
+        public List<FieldType> Get(int item, bool all)
         {
-            FieldType fieldType = new FieldType();
+            List<FieldType> fields = new List<FieldType>();
 
             if (_handler != null)
             {
-                DataHandler.Property property = new DataHandler.Property();
-                property = _handler.Get(item);
-                fieldType.Name = property.Name;
-                fieldType.Type = property.Type.ToString();
-                if (property.Type == TypeCode.String)
+                if (all == true)
                 {
-                    property.Length = property.Length;
+                    for (int i = 0; i < _handler.Items; i++)
+                    {
+                        DataHandler.Property property = _handler.Get(i);
+                        FieldType field = new FieldType();
+                        field.Name = property.Name;
+                        field.Type = property.Type.ToString();
+                        field.Length = property.Length;
+                        fields.Add(field);
+                    }
+                }
+                else
+                {
+                    DataHandler.Property property = _handler.Get(item);
+                    FieldType field = new FieldType();
+                    field.Name = property.Name;
+                    field.Type = property.Type.ToString();
+                    field.Length = property.Length;
+                    fields.Add(field);
                 }
             }
-            return (fieldType);
+            
+            return (fields);
         }
 
+        #endregion
+        #region Record
+
+        /// <summary>
+        /// Creae new record
+        /// </summary>
+        /// <param name="data"></param>
+        public void Create(List<KeyValuePair<string, object>> data)
+        {
+            if (_handler != null)
+            {
+                object[] record = new object[_handler.Items];
+                bool created = false;
+                foreach (KeyValuePair<string, object> entry in data)
+                {
+                    bool match = false;
+                    for (int i = 0; i < _handler.Items; i++)
+                    {
+                        if (entry.Key == _handler.Fields[i].Name)
+                        {
+                            if (_handler.Fields[i].Type == TypeCode.String)
+                            {
+                                record[i] = Convert.ToString(entry.Value);
+                            }
+                            else if (_handler.Fields[i].Type == TypeCode.Int32)
+                            {
+                                record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            match = true;
+                            created = true;
+                        }
+                    }
+                    if (match == false)
+                    {
+                        throw new KeyNotFoundException("No such key " + entry.Key.ToString());
+                    }
+                }
+                if (created == true)
+                {
+                    _handler.Create(record);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Read record at row
+        /// </summary>
+        /// <param name="row"></param>
+        public List<List<KeyValuePair<string, object>>> Read(int row, bool all)
+        {
+            List<List<KeyValuePair<string, object>>> records = new List<List<KeyValuePair<string, object>>>();
+            if (_handler != null)
+            {
+                if (all == true)
+                {
+                    for (int i = 0; i < _handler.Size; i++)
+                    {
+                        object[] data;
+                        data = _handler.Read(i);
+                        List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
+                        for (int j = 0; j < data.Length; j++)
+                        {
+
+                            record.Add(new KeyValuePair<string, object>(_handler.Fields[j].Name, data[j]));
+                        }
+                        records.Add(record);
+                    }
+                }
+                else
+                {
+                    if (_handler.Size > 0)
+                    {
+                        object[] data;
+                        data = _handler.Read(row);
+                        List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
+                        for (int j = 0; j < data.Length; j++)
+                        {
+                            record.Add(new KeyValuePair<string, object>(_handler.Fields[j].Name, data[j]));
+                        }
+                        records.Add(record);
+                    }
+                }
+            }
+            return(records);
+        }
+
+        /// <summary>
+        /// Update the data at index
+        /// </summary>
+        /// <param name="row"></param>
+        public void Update(int row, List<KeyValuePair<string, object>> data)
+        {
+            if (_handler != null)
+            {
+                if ((row >= 0) && (row <= _handler.Items))    // Inital check to save processing
+                {
+                    // Thnk solution is to read in the data to an array
+                    // then update any fields then update the entire record
+
+                    object[] record = _handler.Read(row);
+                    bool updated = false;
+                    foreach(KeyValuePair<string,object> entry in data)
+                    {
+                        bool match = false;
+                        for (int i=0; i<_handler.Items; i++)
+                        {
+                            if (entry.Key == _handler.Fields[i].Name)
+                            {
+                                if (_handler.Fields[i].Type == TypeCode.String)
+                                {
+                                    record[i] = Convert.ToString(entry.Value);
+                                }
+                                else if (_handler.Fields[i].Type == TypeCode.Int32)
+                                {
+                                    record[i] = Convert.ToInt32(entry.Value);
+                                }
+                                match = true;
+                                updated= true;
+                            }
+                        }
+                        if (match == false)
+                        {
+                            throw new KeyNotFoundException("No such key " + entry.Key.ToString());
+                        }
+                    }
+                    if (updated == true)
+                    {
+                        _handler.Update(record, row);
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Delete the data at index
@@ -233,7 +458,10 @@ namespace StorageLibrary
                 {
                     if (all == true)
                     {
-                        _handler.Delete(row,all);
+                        for (int i = 0; i < _handler.Size; i++)
+                        {
+                            _handler.Delete(row);
+                        }
                     }
                     else
                     {
@@ -243,123 +471,7 @@ namespace StorageLibrary
             }
         }
 
-        /// <summary>
-        /// Creae new record
-        /// </summary>
-        /// <param name="data"></param>
-        public void Create(object[] data)
-        {
-            if (_handler != null)
-            {
-                _handler.Create(data);
-            }
-        }
-
-        /// <summary>
-        /// Creae new record
-        /// </summary>
-        /// <param name="data"></param>
-        public void Create(object[] data)
-        {
-            if (_handler != null)
-            {
-                _handler.Create(data);
-            }
-        }
-
-        /// <summary>
-        /// Read record at row
-        /// </summary>
-        /// <param name="row"></param>
-        public string Read(int row, bool all)
-        {
-            StringBuilder builder = new StringBuilder();
-            if (_handler != null)
-            {
-                if (all == true)
-                {
-                    for (int i = 0; i < _handler.Size; i++)
-                    {
-                        object[] data;
-                        data = _handler.Read(i);
-                        for (int j = 0; j < data.Length; j++)
-                        {
-                            // this will depend on the output formal which needs
-                            // passing in via the command line but assume csv
-                            builder.Append(_handler.Fields[j]);
-                            builder.Append(",");
-                            switch (_handler.Fields[j].Type)
-                            {
-                                case TypeCode.Int16:
-                                    {
-                                        builder.Append(data[j]);
-                                        break;
-                                    }
-                                case TypeCode.String:
-                                    {
-                                        builder.Append("\"");
-                                        builder.Append(data[j]);
-                                        builder.Append("\"");
-                                        break;
-                                    }
-                            }
-                        }
-                        builder.Append("\n");
-                    }
-                }
-                else
-                {
-                    object[] data;
-                    data = _handler.Read(row);
-                    for (int j = 0; j < data.Length; j++)
-                    {
-                        // this will depend on the output format which needs
-                        // passing in via the command line but assume csv
-                        builder.Append(_handler.Fields[j]);
-                        builder.Append(",");
-                        switch (_handler.Fields[j].Type)
-                        {
-                            case TypeCode.Int16:
-                                {
-                                    builder.Append(data[j]);
-                                    break;
-                                }
-                            case TypeCode.String:
-                                {
-                                    builder.Append("\"");
-                                    builder.Append(data[j]);
-                                    builder.Append("\"");
-                                    break;
-                                }
-                        }
-                    }
-                }
-                
-            }
-            return (builder.ToString());
-        }
-
-
-        /// <summary>
-        /// Update the data at index
-        /// </summary>
-        /// <param name="row"></param>
-        public void Update(string kvp, int row)
-        {
-            if (_handler != null)
-            {
-                if ((row >= 0) && (row <= _handler.Size))    // Inital check to save processing
-                {
-                    object[] data = new object[_handler.Fields.Length];
-                    _handler.Update(data, row);
-                }
-            }
-        }
-
-        #endregion
-        #region Private
-
-        private TypeCode TypeLookup(string type)
+        public TypeCode TypeLookup(string type)
         {
             TypeCode dataType = TypeCode.Int16;
 
@@ -367,6 +479,10 @@ namespace StorageLibrary
             {
                 case "I":
                 case "INT":
+                case "INT32":
+                    dataType = TypeCode.Int32;
+                    break;
+                case "INT16":
                     dataType = TypeCode.Int16;
                     break;
                 case "S":
@@ -377,6 +493,7 @@ namespace StorageLibrary
             return (dataType);
         }
 
+        #endregion
         #endregion
     }
 }

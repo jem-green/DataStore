@@ -1,66 +1,51 @@
-using System;
+//  Copyright (c) 2017, Jeremy Green All rights reserved.
 
-namespace StorageConsole
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace DatastoreConsole
 {
-    public class Parameter
+    public class Parameter<T>
     {
         #region Fields
-        string _key = "";
-        object _value;
+
+        T _value = default(T);
         SourceType _source = SourceType.None;
 
-        public enum SourceType
+        public enum SourceType: int
         {
             None = 0,
             Command = 1,
             Registry = 2,
-            App = 3
+            App = 3,
+            File = 4
         }
 
         #endregion
         #region Constructor
-        public Parameter(string key)
+        public Parameter()
         {
-            _key = key;
-            _value = null;
-            _source = SourceType.None;
+            this._value = typeof(T) == typeof(string) ? (T)(object)string.Empty : default(T);
         }
-        public Parameter(string key, SourceType source)
+
+        public Parameter(T value)
         {
-            _key = key;
-            _value = null;
-            _source = source;
+            this._value = value;
+            _source = SourceType.App;
         }
-        public Parameter(string key, object value)
+        public Parameter(T value, SourceType source)
         {
-            _key = key;
             _value = value;
-            _source = SourceType.None;
-        }
-        public Parameter(string key, object value, SourceType source)
-        {
-            _key = key;
-            _value = value;
-            _source = source;
+            this._source = source;
         }
         #endregion
         #region Parameters
-        public string Key
+        public T Value
         {
             set
             {
-                _key = value;
-            }
-            get
-            {
-                return (_key);
-            }
-        }
-        public object Value
-        {
-            set
-            {
-                _value = value;
+                this._value = value;
             }
             get
             {
