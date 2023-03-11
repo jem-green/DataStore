@@ -24,7 +24,7 @@ namespace DatastoreLibrary
         +-----------------------+ <- 0
         | Header (6)            | 
         +-----------------------+ <- 6
-        | Field (1)             |
+        | Fields (1)            |
         +-----------------------+ <- 7 [_start]
         | Property (6 + name)   |
         |          ...          |
@@ -327,22 +327,6 @@ namespace DatastoreLibrary
                 return (_items);
             }
         }
-
-        internal Property[] Fields
-        {
-            get
-            {
-                return (_properties);
-            }
-        }
-
-        //internal ArrayList List
-        //{
-        //    get
-        //    {
-        //        return (new ArrayList(_fields));
-        //    }
-        //}
 
         #endregion
         #region Methods

@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using System.Threading.Channels;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace DatastoreConsole
 {
@@ -63,7 +64,7 @@ namespace DatastoreConsole
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" DELETE --row --all
 
         #region Fields
-        static private bool _isclosing = false;
+        static private bool _isClosing = false;
         static private HandlerRoutine ctrlCHandler;
         static private PersistentDatastore _dataStore;
         static private Command _command = Command.None;
@@ -178,7 +179,7 @@ namespace DatastoreConsole
             //}
 
             Parameter<SourceLevels> traceLevels = new Parameter<SourceLevels>();
-            traceLevels.Value = TraceInternal.TraceLookup("information");
+            traceLevels.Value = TraceInternal.TraceLookup("none");
             traceLevels.Source = Parameter<SourceLevels>.SourceType.App;
 
             // Configure tracer options
@@ -193,7 +194,7 @@ namespace DatastoreConsole
             Trace.Listeners.Add(listener);
 
             //ConsoleTraceListener console = new ConsoleTraceListener();
-            //TraceFilter consoleTraceFilter = new System.Diagnostics.EventTypeFilter(SourceLevels.Verbose);
+            //TraceFilter consoleTraceFilter = new System.Diagnostics.EventTypeFilter(SourceLevels.None);
             //console.Filter = consoleTraceFilter;
             //Trace.Listeners.Add(console);
 
@@ -909,6 +910,11 @@ namespace DatastoreConsole
                 errorCode = 0;
             }
 
+            // Redirect the output
+
+            listener.Flush();
+            listener.Close();
+            listener.Dispose();
 
             Debug.WriteLine("Exit Main()");
             return (errorCode);
@@ -925,26 +931,26 @@ namespace DatastoreConsole
             {
                 case CtrlTypes.CTRL_C_EVENT:
                     {
-                        _isclosing = true;
+                        _isClosing = true;
                         TraceInternal.TraceVerbose("CTRL+C received:");
                         break;
                     }
                 case CtrlTypes.CTRL_BREAK_EVENT:
                     {
-                        _isclosing = true;
+                        _isClosing = true;
                         TraceInternal.TraceVerbose("CTRL+BREAK received:");
                         break;
                     }
                 case CtrlTypes.CTRL_CLOSE_EVENT:
                     {
-                        _isclosing = true;
+                        _isClosing = true;
                         TraceInternal.TraceVerbose("Program being closed:");
                         break;
                     }
                 case CtrlTypes.CTRL_LOGOFF_EVENT:
                 case CtrlTypes.CTRL_SHUTDOWN_EVENT:
                     {
-                        _isclosing = true;
+                        _isClosing = true;
                         TraceInternal.TraceVerbose("User is logging off:");
                         break;
                     }
@@ -966,17 +972,29 @@ namespace DatastoreConsole
         private static TypeCode TypeLookup(string type)
         {
             TypeCode dataType = TypeCode.Int16;
-
-            switch (type.ToUpper())
+            string lookup = type;
+            if (lookup.Length > 1)
             {
+                lookup = lookup.ToUpper();
+            }
+
+            switch (lookup)
+            {
+                case "d":
+                case "D":
+                 case "DOUBLE":
+                    dataType = TypeCode.Double;
+                    break;
                 case "I":
                 case "INT":
                 case "INT32":
                     dataType = TypeCode.Int32;
                     break;
+                case "i":
                 case "INT16":
                     dataType = TypeCode.Int16;
                     break;
+                case "s":
                 case "S":
                 case "STRING":
                     dataType = TypeCode.String;
@@ -988,9 +1006,15 @@ namespace DatastoreConsole
         private static bool BooleanLookup(string value)
         {
             bool boolean = false;
-
-            switch (value.ToUpper())
+            string lookup = value;
+            if (lookup.Length > 1)
             {
+                lookup = lookup.ToUpper();
+            }
+
+            switch (lookup)
+            {
+                case "y":
                 case "Y":
                 case "YES":
                 case "TRUE":
@@ -998,6 +1022,7 @@ namespace DatastoreConsole
                         boolean = true;
                         break;
                     }
+                case "n":
                 case "N":
                 case "NO":
                 case "FALSE":

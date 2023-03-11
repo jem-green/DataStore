@@ -164,7 +164,7 @@ namespace DatastoreLibrary
         {
             get
             {
-                return (_handler.Fields.Length);
+                return (_handler.Items);
             }
         }
 
@@ -331,13 +331,13 @@ namespace DatastoreLibrary
                     bool match = false;
                     for (int i = 0; i < _handler.Items; i++)
                     {
-                        if (entry.Key == _handler.Fields[i].Name)
+                        if (entry.Key == _handler.Get(i).Name)
                         {
-                            if (_handler.Fields[i].Type == TypeCode.String)
+                            if (_handler.Get(i).Type == TypeCode.String)
                             {
                                 record[i] = Convert.ToString(entry.Value);
                             }
-                            else if (_handler.Fields[i].Type == TypeCode.Int32)
+                            else if (_handler.Get(i).Type == TypeCode.Int32)
                             {
                                 record[i] = Convert.ToInt32(entry.Value);
                             }
@@ -358,9 +358,11 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Read record at row
+        /// Read record
         /// </summary>
         /// <param name="row"></param>
+        /// <param name="all"></param>
+        /// <returns></returns>
         public List<List<KeyValuePair<string, object>>> Read(int row, bool all)
         {
             List<List<KeyValuePair<string, object>>> records = new List<List<KeyValuePair<string, object>>>();
@@ -376,7 +378,7 @@ namespace DatastoreLibrary
                         for (int j = 0; j < data.Length; j++)
                         {
 
-                            record.Add(new KeyValuePair<string, object>(_handler.Fields[j].Name, data[j]));
+                            record.Add(new KeyValuePair<string, object>(_handler.Get(j).Name, data[j]));
                         }
                         records.Add(record);
                     }
@@ -388,9 +390,9 @@ namespace DatastoreLibrary
                         object[] data;
                         data = _handler.Read(row);
                         List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
-                        for (int j = 0; j < data.Length; j++)
+                        for (int i = 0; i < data.Length; i++)
                         {
-                            record.Add(new KeyValuePair<string, object>(_handler.Fields[j].Name, data[j]));
+                            record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
                         }
                         records.Add(record);
                     }
@@ -400,7 +402,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Update the data at index
+        /// Update the record data at index
         /// </summary>
         /// <param name="row"></param>
         public void Update(int row, List<KeyValuePair<string, object>> data)
@@ -419,13 +421,13 @@ namespace DatastoreLibrary
                         bool match = false;
                         for (int i=0; i<_handler.Items; i++)
                         {
-                            if (entry.Key == _handler.Fields[i].Name)
+                            if (entry.Key == _handler.Get(i).Name)
                             {
-                                if (_handler.Fields[i].Type == TypeCode.String)
+                                if (_handler.Get(i).Type == TypeCode.String)
                                 {
                                     record[i] = Convert.ToString(entry.Value);
                                 }
-                                else if (_handler.Fields[i].Type == TypeCode.Int32)
+                                else if (_handler.Get(i).Type == TypeCode.Int32)
                                 {
                                     record[i] = Convert.ToInt32(entry.Value);
                                 }
@@ -447,7 +449,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Delete the data at index
+        /// Delete the record at index
         /// </summary>
         /// <param name="row"></param>
         public void Delete(int row, bool all)
