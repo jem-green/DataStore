@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+
 using System.IO;
-using System.Text;
+using System.Reflection;
+
 
 namespace DatastoreLibrary
 {
@@ -713,7 +713,7 @@ namespace DatastoreLibrary
         /// <summary>
         /// Delete an existing database field by index
         /// </summary>
-        /// <param name="field"></param>
+        /// <param name="index"></param>
         internal void RemoveAt(int index)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -997,7 +997,7 @@ namespace DatastoreLibrary
 
                 // Appending will only work if the file is deleted and the updates start again
                 // Not sure if this is the best approach.
-                // Need to update the 
+                // Need to update the ...
 
                 binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
                 byte flag = 0;
@@ -1047,9 +1047,172 @@ namespace DatastoreLibrary
                 binaryWriter.Close();
                 binaryWriter.Dispose();
                 created = true;
-                return (created);
             }
+            return (created);
         }
+
+        /// <summary>
+        /// Insert new record at index
+        /// </summary>
+        /// <param name="record"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        internal bool Insert(object[] record, int index)
+        {
+            bool insert = false;
+
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
+            lock (_lockObject)
+            {
+                if ((index >= 0) && (index <= _size))
+                {
+
+                    // insert the pointer into the index file
+
+                    FileStream stream = new FileStream(indexPath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                    BinaryReader indexReader = new BinaryReader(stream);
+                    BinaryWriter indexWriter = new BinaryWriter(stream);
+
+                    // copy the ponter and length data upwards 
+
+                    for (int counter = _size; counter > index; counter--)
+                    {
+                        indexReader.BaseStream.Seek((counter - 1) * 4, SeekOrigin.Begin);         // Move to location of the index
+                        UInt16 pointer = indexReader.ReadUInt16();                          // Read the pointer from the index file
+                        UInt16 length = indexReader.ReadUInt16();                           // Read the length from the index file
+                        indexWriter.Seek(counter * 4, SeekOrigin.Begin);              // Move to location of the index
+                        indexWriter.Write(pointer);
+                        indexWriter.Write(length);
+                    }
+                    indexWriter.Close();
+                    indexReader.Close();
+                    stream.Close();
+
+                    // insert the new 
+
+                    indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
+                    indexWriter.Seek(index * 4, SeekOrigin.Begin);              // Move to location of the index
+                    indexWriter.Write(_pointer);                                // Write the pointer
+
+                    int offset = 0;
+                    offset += 1;    // Including the flag
+                    for (int i = 0; i < record.Length; i++)
+                    {
+                        object data = record[i];
+                        switch (_properties[i].Type)
+                        {
+                            case TypeCode.Int16:
+                                {
+                                    offset += 2;
+                                    break;
+                                }
+                            case TypeCode.Int32:
+                                {
+                                    offset += 4;
+                                    break;
+                                }
+                            case TypeCode.String:
+                                {
+                                    int length = _properties[i].Length;
+                                    if (length < 0)
+                                    {
+                                        length = Convert.ToString(data).Length;
+                                    }
+                                    offset = offset + LEB128.Size(length) + length;     // Includes the byte length parameter
+                                                                                        // ** need to watch this as can be 2 bytes if length is > 127 characters
+                                                                                        // ** https://en.wikipedia.org/wiki/LEB128
+
+                                    break;
+                                }
+                            default:
+                                {
+                                    throw new NotImplementedException();
+                                }
+                        }
+                    }
+
+                    // Update the index length
+
+                    indexWriter.Write((UInt16)offset);  // Write the length
+                    indexWriter.Close();
+                    indexWriter.Dispose();
+
+                    // Write the header
+
+                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    binaryWriter.Seek(0, SeekOrigin.Begin);                         // Move to start of the file
+                    _size++;                                                        // Update the size
+                    binaryWriter.Write(_size);                                      // Write the size
+                    _pointer = (UInt16)(_pointer + offset);                         //
+                    binaryWriter.Write((UInt16)(_pointer));                         // Write the pointer
+                    binaryWriter.Close();
+                    binaryWriter.Dispose();
+
+                    // Write the data
+
+                    // Appending will only work if the file is deleted and the updates start again
+                    // Not sure if this is the best approach.
+                    // Need to update the ...
+
+                    binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
+                    byte flag = 0;
+                    binaryWriter.Write(flag);
+                    for (int i = 0; i < record.Length; i++)
+                    {
+                        object data = record[i];
+                        switch (_properties[i].Type)
+                        {
+                            case TypeCode.Int16:
+                                {
+                                    binaryWriter.Write((Int16)data);
+                                    break;
+                                }
+                            case TypeCode.Int32:
+                                {
+                                    binaryWriter.Write((int)data);
+                                    break;
+                                }
+                            case TypeCode.String:
+                                {
+                                    string text = Convert.ToString(data);
+                                    if (_properties[i].Length < 0)
+                                    {
+                                        binaryWriter.Write(text);
+                                    }
+                                    else
+                                    {
+                                        if (text.Length > _properties[i].Length)
+                                        {
+                                            text = text.Substring(0, _properties[i].Length);
+                                        }
+                                        else
+                                        {
+                                            text = text.PadRight(_properties[i].Length, '\0');
+                                        }
+                                        binaryWriter.Write(text);
+                                    }
+                                    break;
+                                }
+                            default:
+                                {
+                                    throw new NotImplementedException();
+                                }
+                        }
+                    }
+                    binaryWriter.Close();
+                    binaryWriter.Dispose();
+                    insert = true;
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException();
+                }
+            }
+            return (insert);
+        }
+
 
         /// <summary>
         /// Read record by index
@@ -1320,8 +1483,8 @@ namespace DatastoreLibrary
                 {
                     throw new IndexOutOfRangeException();
                 }
-                return (updated);
             }
+            return (updated);
         }
 
         /// <summary>

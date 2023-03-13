@@ -7,10 +7,6 @@ using TracerLibrary;
 using System.IO;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
-using System.Threading.Channels;
-using System.Text.RegularExpressions;
-using System.Linq;
 
 namespace DatastoreConsole
 {
@@ -97,7 +93,8 @@ namespace DatastoreConsole
             Create = 9,
             Read = 10,
             Update = 11,
-            Delete = 12
+            Delete = 12,
+            Insert = 13
         }
 
 
@@ -828,6 +825,30 @@ namespace DatastoreConsole
                             }
                             break;
                         }
+                    case Command.Insert:
+                        {
+                            string output = "";
+                            if ((_fields.Value.Count > 0) && (_values.Value.Count > 0))
+                            {
+                                if (_fields.Value.Count == _values.Value.Count)
+                                {
+                                    output = "INSERT";
+                                    output = output + " --row " + _row.Value;
+                                    List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
+                                    for (int i = 0; i < _fields.Value.Count; i += 1)
+                                    {
+                                        output = output + " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
+                                        record.Add(new KeyValuePair<string, object>(_fields.Value[i], _values.Value[i]));
+                                    }
+                                    if ((record.Count > 0) && (_row.Value >= 0))
+                                    {
+                                        _dataStore.Insert(_row.Value, record);
+                                    }
+                                    Console.WriteLine(output);
+                                }
+                            }
+                            break;
+                        }
                     case Command.Read:
                         {
                             if (_all.Value == true)
@@ -927,33 +948,36 @@ namespace DatastoreConsole
         {
             Debug.WriteLine("In ConsoleCtrlCheck()");
 
-            switch (ctrlType)
+            if (_isClosing == false)
             {
-                case CtrlTypes.CTRL_C_EVENT:
-                    {
-                        _isClosing = true;
-                        TraceInternal.TraceVerbose("CTRL+C received:");
-                        break;
-                    }
-                case CtrlTypes.CTRL_BREAK_EVENT:
-                    {
-                        _isClosing = true;
-                        TraceInternal.TraceVerbose("CTRL+BREAK received:");
-                        break;
-                    }
-                case CtrlTypes.CTRL_CLOSE_EVENT:
-                    {
-                        _isClosing = true;
-                        TraceInternal.TraceVerbose("Program being closed:");
-                        break;
-                    }
-                case CtrlTypes.CTRL_LOGOFF_EVENT:
-                case CtrlTypes.CTRL_SHUTDOWN_EVENT:
-                    {
-                        _isClosing = true;
-                        TraceInternal.TraceVerbose("User is logging off:");
-                        break;
-                    }
+                switch (ctrlType)
+                {
+                    case CtrlTypes.CTRL_C_EVENT:
+                        {
+                            _isClosing = true;
+                            TraceInternal.TraceVerbose("CTRL+C received:");
+                            break;
+                        }
+                    case CtrlTypes.CTRL_BREAK_EVENT:
+                        {
+                            _isClosing = true;
+                            TraceInternal.TraceVerbose("CTRL+BREAK received:");
+                            break;
+                        }
+                    case CtrlTypes.CTRL_CLOSE_EVENT:
+                        {
+                            _isClosing = true;
+                            TraceInternal.TraceVerbose("Program being closed:");
+                            break;
+                        }
+                    case CtrlTypes.CTRL_LOGOFF_EVENT:
+                    case CtrlTypes.CTRL_SHUTDOWN_EVENT:
+                        {
+                            _isClosing = true;
+                            TraceInternal.TraceVerbose("User is logging off:");
+                            break;
+                        }
+                }
             }
             Debug.WriteLine("Out ConsoleCtrlCheck()");
             Environment.Exit(0);

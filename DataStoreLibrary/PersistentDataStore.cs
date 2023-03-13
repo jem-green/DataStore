@@ -358,6 +358,48 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        public void Insert(int row, List<KeyValuePair<string, object>> data)
+        {
+            if (_handler != null)
+            {
+                object[] record = new object[_handler.Items];
+                bool inserted = false;
+                foreach (KeyValuePair<string, object> entry in data)
+                {
+                    bool match = false;
+                    for (int i = 0; i < _handler.Items; i++)
+                    {
+                        if (entry.Key == _handler.Get(i).Name)
+                        {
+                            if (_handler.Get(i).Type == TypeCode.String)
+                            {
+                                record[i] = Convert.ToString(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int32)
+                            {
+                                record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            match = true;
+                            inserted = true;
+                        }
+                    }
+                    if (match == false)
+                    {
+                        throw new KeyNotFoundException("No such key " + entry.Key.ToString());
+                    }
+                }
+                if (inserted == true)
+                {
+                    _handler.Insert(record,row);
+                }
+            }
+        }
+
+        /// <summary>
         /// Read record
         /// </summary>
         /// <param name="row"></param>

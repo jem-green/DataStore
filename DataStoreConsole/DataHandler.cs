@@ -1046,8 +1046,8 @@ namespace DatastoreLibrary
                 binaryWriter.Close();
                 binaryWriter.Dispose();
                 created = true;
-                return (created);
             }
+            return (created);
         }
 
         /// <summary>
@@ -1316,8 +1316,8 @@ namespace DatastoreLibrary
                 {
                     throw new IndexOutOfRangeException();
                 }
-                return (updated);
             }
+            return (updated);
         }
 
         /// <summary>

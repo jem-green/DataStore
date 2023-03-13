@@ -47,9 +47,17 @@ namespace DataStoreTests
             update.Add(new KeyValuePair<string, object>("name", "jeremy"));
             _datastore.Update(0, update);
 
+            // insert data
+
+            List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
+            insert.Add(new KeyValuePair<string, object>("id", 2));
+            insert.Add(new KeyValuePair<string, object>("name", "Ash"));
+            _datastore.Insert(3, insert);
+
             // output the results
 
-            List<List<KeyValuePair<string, object>>> records = _datastore.Read(0, false);
+            //List<List<KeyValuePair<string, object>>> records = _datastore.Read(0, false);
+            List<List<KeyValuePair<string, object>>> records = _datastore.Read(0, true);
 
             for (int i = 0; i < records.Count; i++)
             {
