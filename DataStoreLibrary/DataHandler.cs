@@ -12,6 +12,9 @@ namespace DatastoreLibrary
         Solve problem of passing the PersistentDataTable to the other
         classes, so nest the class 
 
+        Data file
+        =========
+
                   1         2
         012345678901234567890
         ~--+-¬+~--+-¬.......~--+
@@ -97,7 +100,7 @@ namespace DatastoreLibrary
         bytes - string
         ...
         
-        Data
+        data
         ----
         
         0 - unsigned byte - flag 0 = normal, 1 = deleted, 2 = spare
@@ -121,12 +124,37 @@ namespace DatastoreLibrary
         
         The date repeats for each field, there is no record separator
         
-        Index
+        Index file
+        ==========
+
+                  1
+        01234567890
+        ~+
+         |  
+         +- Header (2)
+
+        +-----------------------+ <- 0
+        | Header (2)            | 
+        +-----------------------+ <- 2
+        |         index         |     
+        |          ...          |  
+        +-----------------------+ <- zz 
+
+        header
+        ------
+
+        00 - unsigned int16 - length of the key
+        //00 - LEB128 - Length of keyname handled by the binary writer and reader in LEB128 format
+        //bytes - string
+
+        index
         -----
 
+        bytes - key (key length)
         00 - unsigned int16 - pointer to data
         00 - unsigned int16 - length of data
         ...
+        bytes - key (key length)
         00 - unsigned int16 - pointer to data + 1 
         00 - unsigned int16 - length of data + 1
         
@@ -713,13 +741,13 @@ namespace DatastoreLibrary
         /// <summary>
         /// Delete an existing database field by index
         /// </summary>
-        /// <param name="index"></param>
-        internal void RemoveAt(int index)
+        /// <param name="item"></param>
+        internal void RemoveAt(int item)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                if ((index >= 0) && (index < _items))
+                if ((item >= 0) && (item < _items))
                 {
                     // The problem here is that i dont have a pointer index
                     // and i dont know the length of the field
@@ -733,7 +761,7 @@ namespace DatastoreLibrary
                     {
                         binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);
                         offset = binaryReader.ReadByte();
-                        if (counter != index)
+                        if (counter != item)
                         {
                             pointer = (UInt16)(pointer + offset);
                         }
@@ -756,7 +784,7 @@ namespace DatastoreLibrary
                     // deleted field is skipped when read in the
                     // other methods
 
-                    for (int i = index; i < _items-1; i++)
+                    for (int i = item; i < _items-1; i++)
                     {
                         _properties[i] = _properties[i + 1];
                     }
@@ -775,8 +803,8 @@ namespace DatastoreLibrary
         /// Set or update the field attributes by index
         /// </summary>
         /// <param name="field"></param>
-        /// <param name="index"></param>
-        internal void Set(Property field, int index)
+        /// <param name="item"></param>
+        internal void Set(Property field, int item)
         {
             // Update the local cache then write to disk but
             // this is more complex as need to reinsert the field name 
@@ -785,9 +813,9 @@ namespace DatastoreLibrary
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                if ((index >=0) && (index < _items))
+                if ((item >=0) && (item < _items))
                 {
-                    _properties[index] = field;
+                    _properties[item] = field;
 
                     // Calculate the new data size
 
@@ -806,7 +834,7 @@ namespace DatastoreLibrary
                     {
                         binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);
                         length = binaryReader.ReadByte();
-                        if (counter != index)
+                        if (counter != item)
                         {
                             pointer = (UInt16)(pointer + length);
                         }
@@ -1055,10 +1083,10 @@ namespace DatastoreLibrary
         /// Insert new record at index
         /// </summary>
         /// <param name="record"></param>
-        /// <param name="index"></param>
+        /// <param name="row"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        internal bool Insert(object[] record, int index)
+        internal bool Insert(object[] record, int row)
         {
             bool insert = false;
 
@@ -1066,7 +1094,7 @@ namespace DatastoreLibrary
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((index >= 0) && (index <= _size))
+                if ((row >= 0) && (row <= _size))
                 {
 
                     // insert the pointer into the index file
@@ -1077,7 +1105,7 @@ namespace DatastoreLibrary
 
                     // copy the ponter and length data upwards 
 
-                    for (int counter = _size; counter > index; counter--)
+                    for (int counter = _size; counter > row; counter--)
                     {
                         indexReader.BaseStream.Seek((counter - 1) * 4, SeekOrigin.Begin);         // Move to location of the index
                         UInt16 pointer = indexReader.ReadUInt16();                          // Read the pointer from the index file
@@ -1093,7 +1121,7 @@ namespace DatastoreLibrary
                     // insert the new 
 
                     indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexWriter.Seek(index * 4, SeekOrigin.Begin);              // Move to location of the index
+                    indexWriter.Seek(row * 4, SeekOrigin.Begin);              // Move to location of the index
                     indexWriter.Write(_pointer);                                // Write the pointer
 
                     int offset = 0;
@@ -1217,9 +1245,9 @@ namespace DatastoreLibrary
         /// <summary>
         /// Read record by index
         /// </summary>
-        /// <param name="index"></param>
+        /// <param name="row"></param>
         /// <returns></returns>
-        internal object[] Read(int index)
+        internal object[] Read(int row)
         {
             object[] data = null;
 
@@ -1227,7 +1255,7 @@ namespace DatastoreLibrary
             {
                 if (_size > 0)
                 {
-                    if ((index >= 0) && (index <= _size))
+                    if ((row >= 0) && (row <= _size))
                     {
                         data = new object[Items];
                         string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -1238,7 +1266,7 @@ namespace DatastoreLibrary
                         BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
                         BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
 
-                        indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                        indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                         UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
                         binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
 
@@ -1287,17 +1315,17 @@ namespace DatastoreLibrary
         /// Update the record by index
         /// </summary>
         /// <param name="record"></param>
-        /// <param name="index"></param>
+        /// <param name="row"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        internal bool Update(object[] record, int index)
+        internal bool Update(object[] record, int row)
         {
             bool updated = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((index >= 0) && (index <= _size))
+                if ((row >= 0) && (row <= _size))
                 {
                     // Calculate the size of the new record
                     // if greater than the space append and update
@@ -1305,7 +1333,7 @@ namespace DatastoreLibrary
                     // if less then overwite the space with the new record
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                    indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                     UInt16 pointer = indexReader.ReadUInt16();                                      // Reader the pointer from the index file
                     UInt16 offset = indexReader.ReadUInt16();
                     indexReader.Close();
@@ -1412,7 +1440,7 @@ namespace DatastoreLibrary
                         // Overwrite the index to use the new location at the end of the file
 
                         BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                        indexWriter.Seek(index * 4, SeekOrigin.Begin);   // Get the index pointer
+                        indexWriter.Seek(row * 4, SeekOrigin.Begin);   // Get the index pointer
                         indexWriter.Write(_pointer);
                         indexWriter.Close();
 
@@ -1490,16 +1518,16 @@ namespace DatastoreLibrary
         /// <summary>
         /// Delete the record by index
         /// </summary>
-        /// <param name="index"></param>
+        /// <param name="row"></param>
         /// <returns></returns>
-        internal bool Delete(int index)
+        internal bool Delete(int row)
         {
             bool deleted = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((index >= 0) && (index <= _size))
+                if ((row >= 0) && (row <= _size))
                 {
                     // Write the header
 
@@ -1509,7 +1537,7 @@ namespace DatastoreLibrary
                     binaryWriter.Write(_size);                  // Write the new size
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                    indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                     UInt16 pointer = indexReader.ReadUInt16();
                     indexReader.Close();
 
@@ -1528,7 +1556,7 @@ namespace DatastoreLibrary
 
                     // copy the ponter and length data downwards 
 
-                    for (int counter = index; counter < _size; counter++)
+                    for (int counter = row; counter < _size; counter++)
                     {
                         indexReader.BaseStream.Seek((counter + 1) * 4, SeekOrigin.Begin); // Move to location of the index
                         pointer = indexReader.ReadUInt16();                                              // Read the pointer from the index file
