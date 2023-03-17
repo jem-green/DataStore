@@ -427,17 +427,15 @@ namespace DatastoreLibrary
                 }
                 else
                 {
-                    if (_handler.Size > 0)
+                    object[] data;
+                    data = _handler.Read(row);
+                    List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
+                    for (int i = 0; i < data.Length; i++)
                     {
-                        object[] data;
-                        data = _handler.Read(row);
-                        List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
-                        for (int i = 0; i < data.Length; i++)
-                        {
-                            record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
-                        }
-                        records.Add(record);
+                        record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
                     }
+                    records.Add(record);
+
                 }
             }
             return(records);
@@ -451,41 +449,39 @@ namespace DatastoreLibrary
         {
             if (_handler != null)
             {
-                if ((row >= 0) && (row <= _handler.Items))    // Inital check to save processing
-                {
-                    // Thnk solution is to read in the data to an array
-                    // then update any fields then update the entire record
 
-                    object[] record = _handler.Read(row);
-                    bool updated = false;
-                    foreach(KeyValuePair<string,object> entry in data)
+                // Thnk solution is to read in the data to an array
+                // then update any fields then update the entire record
+
+                object[] record = _handler.Read(row);
+                bool updated = false;
+                foreach (KeyValuePair<string, object> entry in data)
+                {
+                    bool match = false;
+                    for (int i = 0; i < _handler.Items; i++)
                     {
-                        bool match = false;
-                        for (int i=0; i<_handler.Items; i++)
+                        if (entry.Key == _handler.Get(i).Name)
                         {
-                            if (entry.Key == _handler.Get(i).Name)
+                            if (_handler.Get(i).Type == TypeCode.String)
                             {
-                                if (_handler.Get(i).Type == TypeCode.String)
-                                {
-                                    record[i] = Convert.ToString(entry.Value);
-                                }
-                                else if (_handler.Get(i).Type == TypeCode.Int32)
-                                {
-                                    record[i] = Convert.ToInt32(entry.Value);
-                                }
-                                match = true;
-                                updated= true;
+                                record[i] = Convert.ToString(entry.Value);
                             }
-                        }
-                        if (match == false)
-                        {
-                            throw new KeyNotFoundException("No such key " + entry.Key.ToString());
+                            else if (_handler.Get(i).Type == TypeCode.Int32)
+                            {
+                                record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            match = true;
+                            updated = true;
                         }
                     }
-                    if (updated == true)
+                    if (match == false)
                     {
-                        _handler.Update(record, row);
+                        throw new KeyNotFoundException("No such key " + entry.Key.ToString());
                     }
+                }
+                if (updated == true)
+                {
+                    _handler.Update(record, row);
                 }
             }
         }
@@ -498,19 +494,16 @@ namespace DatastoreLibrary
         {
             if (_handler != null)
             {
-                if ((row >= 0) && (row <= _handler.Size))    // Inital check to save processing
+                if (all == true)
                 {
-                    if (all == true)
-                    {
-                        for (int i = 0; i < _handler.Size; i++)
-                        {
-                            _handler.Delete(row);
-                        }
-                    }
-                    else
+                    for (int i = 0; i < _handler.Size; i++)
                     {
                         _handler.Delete(row);
                     }
+                }
+                else
+                {
+                    _handler.Delete(row);
                 }
             }
         }

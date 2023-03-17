@@ -135,7 +135,7 @@ namespace DatastoreLibrary
 
         +-----------------------+ <- 0
         | Header (2)            | 
-        +-----------------------+ <- 2
+        +-----------------------+ <- 2 [_begin]
         |         index         |     
         |          ...          |  
         +-----------------------+ <- zz 
@@ -143,7 +143,7 @@ namespace DatastoreLibrary
         header
         ------
 
-        00 - unsigned int16 - length of the key
+        00 - unsigned int16 - length of the key 
         //00 - LEB128 - Length of keyname handled by the binary writer and reader in LEB128 format
         //bytes - string
 
@@ -173,7 +173,8 @@ namespace DatastoreLibrary
         private UInt16 _data = 7;               // pointer to start of data area
         private byte _items = 0;                // number of field property items
         private Property[] _properties;         // Cache of fields
-
+        private readonly UInt16 _begin = 2;     // Pointer to the beginning of the index area
+        
         /// <summary>
         /// Field properties
         /// </summary>
@@ -456,9 +457,10 @@ namespace DatastoreLibrary
 
                 // Create the index
 
-                binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
-                binaryWriter.BaseStream.SetLength(0);
-                binaryWriter.Close();
+                BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
+                indexWriter.Write((UInt16)2);
+                indexWriter.BaseStream.SetLength(2);
+                indexWriter.Close();
 
                 @new = true;
             }
@@ -494,9 +496,10 @@ namespace DatastoreLibrary
 
                 // Recreate the index
 
-                binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
-                binaryWriter.BaseStream.SetLength(0);
-                binaryWriter.Close();
+                BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
+                indexWriter.Write((UInt16)2);
+                indexWriter.BaseStream.SetLength(2);
+                indexWriter.Close();
 
                 // Clear the field cache
 
@@ -529,9 +532,10 @@ namespace DatastoreLibrary
 
             // Re-create the index
 
-            binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-            binaryWriter.BaseStream.SetLength(0);
-            binaryWriter.Close();
+            BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
+            indexWriter.Write((UInt16)2);
+            indexWriter.BaseStream.SetLength(2);
+            indexWriter.Close();
             clear = true;
             return (clear);
         }
@@ -965,7 +969,8 @@ namespace DatastoreLibrary
                 // append the new pointer the new index file
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Append));
-                indexWriter.Write(_pointer);  // Write the pointer
+                indexWriter.Write((UInt16)_size);   // write the index assume row
+                indexWriter.Write(_pointer);        // Write the pointer
 
                 int offset = 0;
                 offset += 1;    // Including the flag
@@ -1094,7 +1099,7 @@ namespace DatastoreLibrary
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((row >= 0) && (row <= _size))
+                if ((row >= 0) && (row < _size))
                 {
 
                     // insert the pointer into the index file
@@ -1105,12 +1110,16 @@ namespace DatastoreLibrary
 
                     // copy the ponter and length data upwards 
 
+                    UInt16 keyLength = 4;
+                    keyLength = indexReader.ReadUInt16();
                     for (int counter = _size; counter > row; counter--)
                     {
-                        indexReader.BaseStream.Seek((counter - 1) * 4, SeekOrigin.Begin);         // Move to location of the index
-                        UInt16 pointer = indexReader.ReadUInt16();                          // Read the pointer from the index file
-                        UInt16 length = indexReader.ReadUInt16();                           // Read the length from the index file
-                        indexWriter.Seek(counter * 4, SeekOrigin.Begin);              // Move to location of the index
+                        indexReader.BaseStream.Seek(_begin + (counter - 1) * (keyLength + 4), SeekOrigin.Begin);         // Move to location of the index
+                        UInt16 key = indexReader.ReadUInt16();                                      // Read the key from the index file
+                        UInt16 pointer = indexReader.ReadUInt16();                                  // Read the pointer from the index file
+                        UInt16 length = indexReader.ReadUInt16();                                   // Read the length from the index file
+                        indexWriter.Seek(_begin + counter * (keyLength + 4), SeekOrigin.Begin);     // Move to location of the index
+                        indexWriter.Write(key);
                         indexWriter.Write(pointer);
                         indexWriter.Write(length);
                     }
@@ -1118,11 +1127,12 @@ namespace DatastoreLibrary
                     indexReader.Close();
                     stream.Close();
 
-                    // insert the new 
+                    // insert the new record
 
                     indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexWriter.Seek(row * 4, SeekOrigin.Begin);              // Move to location of the index
-                    indexWriter.Write(_pointer);                                // Write the pointer
+                    indexWriter.Seek(_begin + row * (keyLength + 4), SeekOrigin.Begin);              // Move to location of the index
+                    indexWriter.Write(_size);           // Write the key
+                    indexWriter.Write(_pointer);        // Write the pointer
 
                     int offset = 0;
                     offset += 1;    // Including the flag
@@ -1255,7 +1265,7 @@ namespace DatastoreLibrary
             {
                 if (_size > 0)
                 {
-                    if ((row >= 0) && (row <= _size))
+                    if ((row >= 0) && (row < _size))
                     {
                         data = new object[Items];
                         string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -1266,7 +1276,10 @@ namespace DatastoreLibrary
                         BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
                         BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
 
-                        indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                        UInt16 keyLength = 4;
+                        keyLength = indexReader.ReadUInt16();
+                        indexReader.BaseStream.Seek(_begin + row * (keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
+                        UInt16 key = indexReader.ReadUInt16();
                         UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
                         binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
 
@@ -1325,7 +1338,7 @@ namespace DatastoreLibrary
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((row >= 0) && (row <= _size))
+                if ((row >= 0) && (row < _size))
                 {
                     // Calculate the size of the new record
                     // if greater than the space append and update
@@ -1333,7 +1346,10 @@ namespace DatastoreLibrary
                     // if less then overwite the space with the new record
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 keyLength = 4;
+                    keyLength = indexReader.ReadUInt16();
+                    indexReader.BaseStream.Seek(_begin + row * (keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 key = indexReader.ReadUInt16();
                     UInt16 pointer = indexReader.ReadUInt16();                                      // Reader the pointer from the index file
                     UInt16 offset = indexReader.ReadUInt16();
                     indexReader.Close();
@@ -1440,7 +1456,8 @@ namespace DatastoreLibrary
                         // Overwrite the index to use the new location at the end of the file
 
                         BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                        indexWriter.Seek(row * 4, SeekOrigin.Begin);   // Get the index pointer
+                        indexWriter.Seek(_begin + row * (keyLength + 4), SeekOrigin.Begin);   // Get the index pointer
+                        indexWriter.Write((UInt16)key); // check the key
                         indexWriter.Write(_pointer);
                         indexWriter.Close();
 
@@ -1527,7 +1544,7 @@ namespace DatastoreLibrary
             string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
-                if ((row >= 0) && (row <= _size))
+                if ((row >= 0) && (row < _size))
                 {
                     // Write the header
 
@@ -1536,8 +1553,11 @@ namespace DatastoreLibrary
                     _size--;
                     binaryWriter.Write(_size);                  // Write the new size
 
+                    UInt16 keyLength = 4;
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(row * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                    keyLength = indexReader.ReadUInt16();
+                    indexReader.BaseStream.Seek(_begin + row * (keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 KEY = indexReader.ReadUInt16();
                     UInt16 pointer = indexReader.ReadUInt16();
                     indexReader.Close();
 
@@ -1558,10 +1578,10 @@ namespace DatastoreLibrary
 
                     for (int counter = row; counter < _size; counter++)
                     {
-                        indexReader.BaseStream.Seek((counter + 1) * 4, SeekOrigin.Begin); // Move to location of the index
-                        pointer = indexReader.ReadUInt16();                                              // Read the pointer from the index file
+                        indexReader.BaseStream.Seek(_begin + (counter + 1) * (keyLength + 4), SeekOrigin.Begin); // Move to location of the index
+                        pointer = indexReader.ReadUInt16();                                           // Read the pointer from the index file
                         UInt16 offset = indexReader.ReadUInt16();
-                        indexWriter.Seek(counter * 4, SeekOrigin.Begin); // Move to location of the index
+                        indexWriter.Seek(_begin + counter * (keyLength + 4), SeekOrigin.Begin); // Move to location of the index
                         indexWriter.Write(pointer);
                         indexWriter.Write(offset);
                     }
