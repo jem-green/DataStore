@@ -35,7 +35,7 @@ namespace DataStoreTests
             create.Add(new KeyValuePair<string, object>("id", 0));
             create.Add(new KeyValuePair<string, object>("name", "hello"));
             _datastore.Create(create);
-            Print(_datastore.Read(0, true));
+            Print(_datastore.Read(0));
 
             // Create more data
             // 0, id=0, name="hello"
@@ -45,7 +45,7 @@ namespace DataStoreTests
             create.Add(new KeyValuePair<string, object>("id", 1));
             create.Add(new KeyValuePair<string, object>("name", "laura"));
             _datastore.Create(create);
-            Print(_datastore.Read(0, true));
+            Print(_datastore.Read(0));
 
             // Update data
             // 0, id=101, name="jeremy"
@@ -54,8 +54,8 @@ namespace DataStoreTests
             List<KeyValuePair<string, object>> update = new List<KeyValuePair<string, object>>();
             update.Add(new KeyValuePair<string, object>("id", 101));
             update.Add(new KeyValuePair<string, object>("name", "jeremy"));
-            _datastore.Update(0, update);
-            Print(_datastore.Read(0, true));
+            _datastore.Update(update, 0);
+            Print(_datastore.Read(0));
 
             // insert data
             // 0, id=2, name="ash"
@@ -64,34 +64,64 @@ namespace DataStoreTests
             List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
             insert.Add(new KeyValuePair<string, object>("id", 2));
             insert.Add(new KeyValuePair<string, object>("name", "Ash"));
-            _datastore.Insert(0, insert);
-            Print(_datastore.Read(0, true));
-
+            _datastore.Insert(insert,0);
+            Print(_datastore.Read(0));
         }
 
-        static void Print(List<List<KeyValuePair<string, object>>> records)
+        static void Print(Dictionary<string, object> record)
+        {
+                int j = 0;
+            foreach (KeyValuePair<string, object> kvp in record)
+            {
+                Console.Write("\"" + kvp.Key + "\"");
+                Console.Write("=");
+                TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
+                switch (typeCode)
+                {
+                    case TypeCode.String:
+                        {
+                            Console.Write("\"" + kvp.Value + "\"");
+                            break;
+                        }
+                    default:
+                        {
+                            Console.Write(kvp.Value);
+                            break;
+                        }
+                }
+                j++;
+                if (j < record.Count - 1)
+                {
+                    Console.Write(",");
+                }
+            }
+        }
+
+        static void PrintAll(List<Dictionary<string, object>> records)
         {
             for (int i = 0; i < records.Count; i++)
             {
-                List<KeyValuePair<string, object>> record = records[i];
-                for (int j = 0; j < record.Count; j++)
+                Dictionary<string, object> record = records[i];
+                int j = 0;
+                foreach (KeyValuePair<string, object> kvp in record)
                 {
-                    Console.Write("\"" + record[j].Key + "\"");
+                    Console.Write("\"" + kvp.Key + "\"");
                     Console.Write("=");
-                    TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
+                    TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
                     switch (typeCode)
                     {
                         case TypeCode.String:
                             {
-                                Console.Write("\"" + record[j].Value + "\"");
+                                Console.Write("\"" + kvp.Value + "\"");
                                 break;
                             }
                         default:
                             {
-                                Console.Write(record[j].Value);
+                                Console.Write(kvp.Value);
                                 break;
                             }
                     }
+                    j++;
                     if (j < record.Count - 1)
                     {
                         Console.Write(",");

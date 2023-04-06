@@ -842,7 +842,7 @@ namespace DatastoreConsole
                                     }
                                     if ((record.Count > 0) && (_row.Value >= 0))
                                     {
-                                        _dataStore.Insert(_row.Value, record);
+                                        _dataStore.Insert(record, _row.Value);
                                     }
                                     Console.WriteLine(output);
                                 }
@@ -860,38 +860,72 @@ namespace DatastoreConsole
                                 Console.WriteLine("READ --row {0}", _row.Value);
                             }
                             StringBuilder builder = new StringBuilder();
-                            List<List<KeyValuePair<string, object>>> records = _dataStore.Read(_row.Value, _all.Value);
-                            if (records.Count > 0)
+                            if (_all.Value == true)
                             {
-                                for (int i = 0; i < records.Count; i++)
+                                List<Dictionary<string, object>> records = _dataStore.Read();
+                                if (records.Count > 0)
                                 {
-                                    List<KeyValuePair<string, object>> record = records[i];
-                                    for (int j = 0; j < record.Count; j++)
+                                    for (int i = 0; i < records.Count; i++)
                                     {
-                                        builder.Append("\"" + record[j].Key + "\"");
-                                        builder.Append("=");
-                                        TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
-                                        switch (typeCode)
+                                        Dictionary<string, object> record = records[i];
+                                        int j = 0;
+                                        foreach (KeyValuePair<string, object> kvp in record)
                                         {
-                                            case TypeCode.String:
-                                                {
-                                                    builder.Append("\"" + record[j].Value + "\"");
-                                                    break;
-                                                }
-                                            default:
-                                                {
-                                                    builder.Append(record[j].Value);
-                                                    break;
-                                                }
+                                            builder.Append("\"" + kvp.Key + "\"");
+                                            builder.Append("=");
+                                            TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
+                                            switch (typeCode)
+                                            {
+                                                case TypeCode.String:
+                                                    {
+                                                        builder.Append("\"" + kvp.Value + "\"");
+                                                        break;
+                                                    }
+                                                default:
+                                                    {
+                                                        builder.Append(kvp.Value);
+                                                        break;
+                                                    }
+                                            }
+                                            j++;
+                                            if (j < record.Count - 1)
+                                            {
+                                                builder.Append(",");
+                                            }
                                         }
-                                        if (j < record.Count - 1)
+                                        if (i < records.Count - 1)
                                         {
-                                            builder.Append(",");
+                                            builder.Append("\r\n");
                                         }
                                     }
-                                    if (i < records.Count - 1)
+                                }
+                            }
+                            else
+                            {
+                                Dictionary<string, object> record = _dataStore.Read(_row.Value);
+                                int j = 0;
+                                foreach (KeyValuePair<string, object> kvp in record)
+                                {
+                                    builder.Append("\"" + kvp.Key + "\"");
+                                    builder.Append("=");
+                                    TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
+                                    switch (typeCode)
                                     {
-                                        builder.Append("\r\n");
+                                        case TypeCode.String:
+                                            {
+                                                builder.Append("\"" + kvp.Value + "\"");
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                builder.Append(kvp.Value);
+                                                break;
+                                            }
+                                    }
+                                    j++;
+                                    if (j < record.Count - 1)
+                                    {
+                                        builder.Append(",");
                                     }
                                 }
                             }
@@ -915,7 +949,7 @@ namespace DatastoreConsole
                                     }
                                     if ((record.Count > 0) && (_row.Value >= 0))
                                     {
-                                        _dataStore.Update(_row.Value, record);
+                                        _dataStore.Update(record, _row.Value);
                                     }
                                     Console.WriteLine(output);
                                 }

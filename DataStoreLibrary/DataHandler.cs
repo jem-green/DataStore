@@ -167,7 +167,7 @@ namespace DatastoreLibrary
         private string _index = "";
 
         private readonly object _lockObject = new Object();
-        private UInt16 _size = 0;               // number of elements
+        private UInt16 _size = 0;               // number of elements 65535
         private readonly UInt16 _start = 7;     // Pointer to the start of the field area
         private UInt16 _pointer = 7;            // Pointer to current element offset from the data area
         private UInt16 _data = 7;               // pointer to start of data area
@@ -359,6 +359,7 @@ namespace DatastoreLibrary
 
         #endregion
         #region Methods
+
 
         // General methods (OCRN)
         // Open -

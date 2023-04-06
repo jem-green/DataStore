@@ -221,6 +221,16 @@ namespace DatastoreLibrary
             Add(name, TypeLookup(type), length);
         }
 
+        public void Add(string name, string type)
+        {
+            Add(name, TypeLookup(type), -1);
+        }
+
+        public void Add(string name, TypeCode typeCode)
+        {
+            Add(name, typeCode, -1);
+        }
+
         public void Add(string name, TypeCode typeCode, sbyte length)
         {
             if (_handler != null)
@@ -362,7 +372,7 @@ namespace DatastoreLibrary
         /// </summary>
         /// <param name="data"></param>
         /// <exception cref="KeyNotFoundException"></exception>
-        public void Insert(int row, List<KeyValuePair<string, object>> data)
+        public void Insert(List<KeyValuePair<string, object>> data, int row)
         {
             if (_handler != null)
             {
@@ -400,52 +410,54 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Read record
+        /// Read all records
         /// </summary>
-        /// <param name="row"></param>
-        /// <param name="all"></param>
         /// <returns></returns>
-        public List<List<KeyValuePair<string, object>>> Read(int row, bool all)
+        public List<Dictionary<string, object>> Read()
         {
-            List<List<KeyValuePair<string, object>>> records = new List<List<KeyValuePair<string, object>>>();
+            List<Dictionary<string, object>> records = new List<Dictionary<string, object>>();
             if (_handler != null)
             {
-                if (all == true)
-                {
-                    for (int i = 0; i < _handler.Size; i++)
-                    {
-                        object[] data;
-                        data = _handler.Read(i);
-                        List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
-                        for (int j = 0; j < data.Length; j++)
-                        {
-
-                            record.Add(new KeyValuePair<string, object>(_handler.Get(j).Name, data[j]));
-                        }
-                        records.Add(record);
-                    }
-                }
-                else
+                for (int i = 0; i < _handler.Size; i++)
                 {
                     object[] data;
-                    data = _handler.Read(row);
-                    List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
-                    for (int i = 0; i < data.Length; i++)
+                    data = _handler.Read(i);
+                    Dictionary<string, object> record = new Dictionary<string, object>();
+                    for (int j = 0; j < data.Length; j++)
                     {
-                        record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
+                        record.Add(_handler.Get(j).Name, data[j]);
                     }
                     records.Add(record);
-
                 }
             }
             return(records);
         }
 
         /// <summary>
+        /// Read record
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public Dictionary<string, object> Read(int row)
+        {
+            Dictionary<string, object> record = new Dictionary<string, object>();
+            if (_handler != null)
+            {
+                object[] data;
+                data = _handler.Read(row);
+                for (int i = 0; i < data.Length; i++)
+                {
+                    record.Add(_handler.Get(i).Name, data[i]);
+                }
+            }
+            return (record);
+        }
+
+        /// <summary>
         /// Update the record data at index
         /// </summary>
         /// <param name="row"></param>
-        public void Update(int row, List<KeyValuePair<string, object>> data)
+        public void Update(List<KeyValuePair<string, object>> data, int row)
         {
             if (_handler != null)
             {
