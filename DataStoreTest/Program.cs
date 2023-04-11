@@ -36,6 +36,7 @@ namespace DataStoreTests
             create.Add(new KeyValuePair<string, object>("name", "hello"));
             _datastore.Create(create);
             Print(_datastore.Read(0));
+            Console.Write("\n");
 
             // Create more data
             // 0, id=0, name="hello"
@@ -46,6 +47,7 @@ namespace DataStoreTests
             create.Add(new KeyValuePair<string, object>("name", "laura"));
             _datastore.Create(create);
             Print(_datastore.Read(0));
+            Console.Write("\n");
 
             // Update data
             // 0, id=101, name="jeremy"
@@ -56,6 +58,7 @@ namespace DataStoreTests
             update.Add(new KeyValuePair<string, object>("name", "jeremy"));
             _datastore.Update(update, 0);
             Print(_datastore.Read(0));
+            Console.Write("\n");
 
             // insert data
             // 0, id=2, name="ash"
@@ -66,11 +69,14 @@ namespace DataStoreTests
             insert.Add(new KeyValuePair<string, object>("name", "Ash"));
             _datastore.Insert(insert,0);
             Print(_datastore.Read(0));
+            Console.Write("\n");
+            PrintAll(_datastore.Read());
+            Console.Write("\n");
         }
 
         static void Print(Dictionary<string, object> record)
         {
-                int j = 0;
+            int j = 0;
             foreach (KeyValuePair<string, object> kvp in record)
             {
                 Console.Write("\"" + kvp.Key + "\"");
@@ -95,6 +101,7 @@ namespace DataStoreTests
                     Console.Write(",");
                 }
             }
+            Console.Write("\r\n");
         }
 
         static void PrintAll(List<Dictionary<string, object>> records)
