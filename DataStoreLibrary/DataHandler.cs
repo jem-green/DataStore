@@ -1010,6 +1010,11 @@ namespace DatastoreLibrary
                                 offset += 4;
                                 break;
                             }
+                        case TypeCode.Int64:
+                            {
+                                offset += 8;
+                                break;
+                            }
                         case TypeCode.String:
                             {
                                 int length = _properties[i].Length;
@@ -1068,7 +1073,12 @@ namespace DatastoreLibrary
                             }
                         case TypeCode.Int32:
                             {
-                                binaryWriter.Write((int)data);
+                                binaryWriter.Write((Int32)data);
+                                break;
+                            }
+                        case TypeCode.Int64:
+                            {
+                                binaryWriter.Write((Int64)data);
                                 break;
                             }
                         case TypeCode.String:
@@ -1106,7 +1116,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Insert new record at index
+        /// Insert new record at row
         /// </summary>
         /// <param name="record"></param>
         /// <param name="row"></param>
@@ -1170,6 +1180,11 @@ namespace DatastoreLibrary
                                     offset += 4;
                                     break;
                                 }
+                            case TypeCode.Int64:
+                                {
+                                    offset += 8;
+                                    break;
+                                }
                             case TypeCode.String:
                                 {
                                     int length = _properties[i].Length;
@@ -1228,7 +1243,12 @@ namespace DatastoreLibrary
                                 }
                             case TypeCode.Int32:
                                 {
-                                    binaryWriter.Write((int)data);
+                                    binaryWriter.Write((Int32)data);
+                                    break;
+                                }
+                            case TypeCode.Int64:
+                                {
+                                    binaryWriter.Write((Int64)data);
                                     break;
                                 }
                             case TypeCode.String:
@@ -1272,7 +1292,7 @@ namespace DatastoreLibrary
 
 
         /// <summary>
-        /// Read record by index
+        /// Read record by row
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
@@ -1315,6 +1335,11 @@ namespace DatastoreLibrary
                                         data[count] = binaryReader.ReadInt32();
                                         break;
                                     }
+                                case TypeCode.Int64:
+                                    {
+                                        data[count] = binaryReader.ReadInt64();
+                                        break;
+                                    }
                                 case TypeCode.String:
                                     {
                                         // should not need to lenght check again here
@@ -1342,7 +1367,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Update the record by index
+        /// Update the record by row
         /// </summary>
         /// <param name="record"></param>
         /// <param name="row"></param>
@@ -1387,6 +1412,11 @@ namespace DatastoreLibrary
                                     length += 4;
                                     break;
                                 }
+                            case TypeCode.Int64:
+                                {
+                                    length += 8;
+                                    break;
+                                }
                             case TypeCode.String:
                                 {
                                     int l = _properties[i].Length;
@@ -1429,7 +1459,12 @@ namespace DatastoreLibrary
                                     }
                                 case TypeCode.Int32:
                                     {
-                                        binaryWriter.Write((int)data);
+                                        binaryWriter.Write((Int32)data);
+                                        break;
+                                    }
+                                case TypeCode.Int64:
+                                    {
+                                        binaryWriter.Write((Int64)data);
                                         break;
                                     }
                                 case TypeCode.String:
@@ -1505,7 +1540,12 @@ namespace DatastoreLibrary
                                     }
                                 case TypeCode.Int32:
                                     {
-                                        binaryWriter.Write((int)data);
+                                        binaryWriter.Write((Int32)data);
+                                        break;
+                                    }
+                                case TypeCode.Int64:
+                                    {
+                                        binaryWriter.Write((Int64)data);
                                         break;
                                     }
                                 case TypeCode.String:
@@ -1548,7 +1588,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Delete the record by index
+        /// Delete the record by row
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
@@ -1616,6 +1656,14 @@ namespace DatastoreLibrary
             return (deleted);
         }
 
+        /// <summary>
+        /// Seek the row of a specific value 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <exception cref="InvalidDataException"></exception>
+
         internal int Seek(object value)
         {
             int searched = -1;
@@ -1643,7 +1691,17 @@ namespace DatastoreLibrary
                                 }
                             case TypeCode.Int32:
                                 {
-                                    Int32 data = indexReader.ReadInt16();
+                                    Int32 data = indexReader.ReadInt32();
+                                    if (data == (Int32)value)
+                                    {
+                                        searched = row;
+                                        break;
+                                    }
+                                    break;
+                                }
+                            case TypeCode.Int64:
+                                {
+                                    Int64 data = indexReader.ReadInt64();
                                     if (data == (Int32)value)
                                     {
                                         searched = row;
@@ -1679,6 +1737,34 @@ namespace DatastoreLibrary
 
         #endregion
         #region Private
+
+        internal SByte GetTypeLength(TypeCode type)
+        {
+            SByte length = 0;
+            switch (type)
+            {
+                case TypeCode.Int16:
+                    {
+                        length = 2;
+                        break;
+                    }
+                case TypeCode.Int32:
+                    {
+                        length = 4;
+                        break;
+                    }
+                case TypeCode.Int64:
+                    {
+                        length = 8;
+                        break;
+                    }
+                default:
+                    {
+                        throw new NotImplementedException();
+                    }
+            }
+            return (length);
+        }
 
         internal Property GetField(int index)
         {

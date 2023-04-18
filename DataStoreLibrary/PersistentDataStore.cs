@@ -1,12 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
+using System.Runtime;
 
 namespace DatastoreLibrary
 {
@@ -15,7 +9,7 @@ namespace DatastoreLibrary
         #region Fields
 
         private string _path = "";
-        private string _name = "";
+        private string _name = "PersistentDatastore";
         private DataHandler _handler;
         private bool _open = false;
 
@@ -83,40 +77,66 @@ namespace DatastoreLibrary
         #region Constructors 
 
         /// <summary>
-        /// Open or create a new data store
+        /// Reset, Open or create a new data store
         /// </summary>
         public PersistentDatastore()
         {
-            // Reset, Open or create a new store based on the type
+            // Open or create a new store based on the default name
 
             _handler = new DataHandler(_path, _name);
             if (_handler.Open() == false)
             {
-                _handler.New();
+                _open = _handler.New();
             }
         }
 
         /// <summary>
-        /// Reset, Open or create a new store based on the type
+        /// Reset, Open or create a new store based on the type based on a default name
         /// </summary>
         /// <param name="reset"></param>
         public PersistentDatastore(bool reset)
         {
-            // Reset, Open or create a new store based on the type
+            // Reset, Open or create a new store
 
             _handler = new DataHandler(_path, _name);
-            if (_handler.Open() == false)
+            _open = _handler.Open();
+            if (_open == false)
             {
-                _handler.New();
+                _open = _handler.New();
             }
             else if (reset == true)
             {
-                _handler.Reset();
+                _open = _handler.Reset();
             }
         }
 
         /// <summary>
-        /// Reset, Open or create a new store based on the type with a specific name and location
+        /// Open or create a new store with a specific name and location
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="filename"></param>
+        public PersistentDatastore(string path, string filename)
+        {
+            if ((path != null) && (path.Length > 0))
+            {
+                _path = path;
+            }
+
+            if ((filename != null) && (filename.Length > 0))
+            {
+                _name = filename;
+            }
+
+            _handler = new DataHandler(_path, _name);
+            _open = _handler.Open();
+            if (_open == false)
+            {
+                _open = _handler.New();
+            }
+        }
+
+        /// <summary>
+        /// Reset, Open or create a new store with a specific name and location
         /// </summary>
         /// <param name="path"></param>
         /// <param name="filename"></param>
@@ -134,18 +154,14 @@ namespace DatastoreLibrary
             }
 
             _handler = new DataHandler(_path, _name);
+            _open = _handler.Open();
             if (_open == false)
             {
-                _open = _handler.Open();
-            }
-
-            if (_open == false)
-            {
-                _handler.New();
+                _open = _handler.New();
             }
             else if (reset == true)
             {
-                _handler.Reset();
+                _open = _handler.Reset();
             }
         }
 
@@ -172,7 +188,7 @@ namespace DatastoreLibrary
         {
             get
             {
-                return(_open);
+                return (_open);
             }
         }
 
@@ -188,7 +204,7 @@ namespace DatastoreLibrary
         {
             if (_open == false)
             {
-                _open =_handler.Open();
+                _open = _handler.Open();
             }
         }
 
@@ -246,20 +262,22 @@ namespace DatastoreLibrary
             }
         }
 
-        public void Remove(int item, bool all)
+        public void Remove(int item)
         {
             if (_handler != null)
             {
-                if (all == true)
+                _handler.RemoveAt(item);
+            }
+        }
+
+        public void Remove()
+        {
+            if (_handler != null)
+            {
+
+                for (int i = _handler.Items; i >= 0; i--)
                 {
-                    for (int i = _handler.Items; i>=0;  i--)
-                    {
-                        _handler.RemoveAt(i);
-                    }
-                }
-                else
-                {
-                    _handler.RemoveAt(item);
+                    _handler.RemoveAt(i);
                 }
             }
         }
@@ -274,6 +292,16 @@ namespace DatastoreLibrary
             Set(item, name, TypeLookup(type), length);
         }
 
+        public void Set(int item, string name, string type)
+        {
+            Set(item, name, TypeLookup(type), -1);
+        }
+
+        public void Set(int item, string name, TypeCode typeCode)
+        {
+            Set(item, name, typeCode, -1);
+        }
+
         public void Set(int item, string name, TypeCode typeCode, sbyte length)
         {
             if (_handler != null)
@@ -285,33 +313,56 @@ namespace DatastoreLibrary
                 {
                     field.Length = length;
                 }
+                else if (field.Type == TypeCode.Boolean)
+                {
+                    field.Length = 1;
+                }
+                else if (field.Type == TypeCode.Int16)
+                {
+                    field.Length = 2;
+                }
+                else if (field.Type == TypeCode.Int32)
+                {
+                    field.Length = 4;
+                }
+                else if (field.Type == TypeCode.Int64)
+                {
+                    field.Length = 8;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+                
                 _handler.Set(field, item);
             }
         }
 
         // WHat do we return here an object / stuc with the field structure
 
-        public List<FieldType> Get(int item, bool all)
+        public FieldType Get(int item)
+        {
+            FieldType field = new FieldType();
+
+            if (_handler != null)
+            {
+                DataHandler.Property property = _handler.Get(item);
+                field.Name = property.Name;
+                field.Type = property.Type.ToString();
+                field.Length = property.Length;
+            }
+            return (field);
+        }
+
+        public List<FieldType> Get()
         {
             List<FieldType> fields = new List<FieldType>();
 
             if (_handler != null)
             {
-                if (all == true)
+                for (int i = 0; i < _handler.Items; i++)
                 {
-                    for (int i = 0; i < _handler.Items; i++)
-                    {
-                        DataHandler.Property property = _handler.Get(i);
-                        FieldType field = new FieldType();
-                        field.Name = property.Name;
-                        field.Type = property.Type.ToString();
-                        field.Length = property.Length;
-                        fields.Add(field);
-                    }
-                }
-                else
-                {
-                    DataHandler.Property property = _handler.Get(item);
+                    DataHandler.Property property = _handler.Get(i);
                     FieldType field = new FieldType();
                     field.Name = property.Name;
                     field.Type = property.Type.ToString();
@@ -319,7 +370,6 @@ namespace DatastoreLibrary
                     fields.Add(field);
                 }
             }
-            
             return (fields);
         }
 
@@ -347,9 +397,21 @@ namespace DatastoreLibrary
                             {
                                 record[i] = Convert.ToString(entry.Value);
                             }
+                            else if (_handler.Get(i).Type == TypeCode.Int16)
+                            {
+                                record[i] = Convert.ToInt16(entry.Value);
+                            }
                             else if (_handler.Get(i).Type == TypeCode.Int32)
                             {
                                 record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int64)
+                            {
+                                record[i] = Convert.ToInt64(entry.Value);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException("Type not implemented " + _handler.Get(i).Type.ToString());
                             }
                             match = true;
                             created = true;
@@ -389,9 +451,21 @@ namespace DatastoreLibrary
                             {
                                 record[i] = Convert.ToString(entry.Value);
                             }
+                            else if (_handler.Get(i).Type == TypeCode.Int16)
+                            {
+                                record[i] = Convert.ToInt16(entry.Value);
+                            }
                             else if (_handler.Get(i).Type == TypeCode.Int32)
                             {
                                 record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int64)
+                            {
+                                record[i] = Convert.ToInt64(entry.Value);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException("Type not implemented " + _handler.Get(i).Type.ToString());
                             }
                             match = true;
                             inserted = true;
@@ -404,7 +478,7 @@ namespace DatastoreLibrary
                 }
                 if (inserted == true)
                 {
-                    _handler.Insert(record,row);
+                    _handler.Insert(record, row);
                 }
             }
         }
@@ -413,24 +487,25 @@ namespace DatastoreLibrary
         /// Read all records
         /// </summary>
         /// <returns></returns>
-        public List<Dictionary<string, object>> Read()
+        public List<List<KeyValuePair<string, object>>> Read()
         {
-            List<Dictionary<string, object>> records = new List<Dictionary<string, object>>();
+            List<List<KeyValuePair<string, object>>> records = new List<List<KeyValuePair<string, object>>>();
             if (_handler != null)
             {
                 for (int i = 0; i < _handler.Size; i++)
                 {
                     object[] data;
                     data = _handler.Read(i);
-                    Dictionary<string, object> record = new Dictionary<string, object>();
+                    List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
                     for (int j = 0; j < data.Length; j++)
                     {
-                        record.Add(_handler.Get(j).Name, data[j]);
+
+                        record.Add(new KeyValuePair<string, object>(_handler.Get(j).Name, data[j]));
                     }
                     records.Add(record);
                 }
             }
-            return(records);
+            return (records);
         }
 
         /// <summary>
@@ -438,16 +513,16 @@ namespace DatastoreLibrary
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
-        public Dictionary<string, object> Read(int row)
+        public List<KeyValuePair<string, object>> Read(int row)
         {
-            Dictionary<string, object> record = new Dictionary<string, object>();
+            List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
             if (_handler != null)
             {
                 object[] data;
                 data = _handler.Read(row);
                 for (int i = 0; i < data.Length; i++)
                 {
-                    record.Add(_handler.Get(i).Name, data[i]);
+                    record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
                 }
             }
             return (record);
@@ -478,9 +553,21 @@ namespace DatastoreLibrary
                             {
                                 record[i] = Convert.ToString(entry.Value);
                             }
+                            else if (_handler.Get(i).Type == TypeCode.Int16)
+                            {
+                                record[i] = Convert.ToInt16(entry.Value);
+                            }
                             else if (_handler.Get(i).Type == TypeCode.Int32)
                             {
                                 record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int64)
+                            {
+                                record[i] = Convert.ToInt64(entry.Value);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException("Type not implemented " + _handler.Get(i).Type.ToString());
                             }
                             match = true;
                             updated = true;
@@ -499,24 +586,28 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Delete the record at index
+        /// Delete all the records
         /// </summary>
-        /// <param name="row"></param>
-        public void Delete(int row, bool all)
+        public void Delete()
         {
             if (_handler != null)
             {
-                if (all == true)
+                for (int i = 0; i < _handler.Size; i++)
                 {
-                    for (int i = 0; i < _handler.Size; i++)
-                    {
-                        _handler.Delete(row);
-                    }
+                    _handler.Delete(i);
                 }
-                else
-                {
-                    _handler.Delete(row);
-                }
+            }
+        }
+
+        /// <summary>
+        /// Delete the record at index
+        /// </summary>
+        /// <param name="row"></param>
+        public void Delete(int row)
+        {
+            if (_handler != null)
+            {
+                _handler.Delete(row);
             }
         }
 
@@ -526,18 +617,33 @@ namespace DatastoreLibrary
 
             switch (type.ToUpper())
             {
+                case "INT16":
+                    {
+                        dataType = TypeCode.Int16;
+                        break;
+                    }
                 case "I":
                 case "INT":
                 case "INT32":
-                    dataType = TypeCode.Int32;
-                    break;
-                case "INT16":
-                    dataType = TypeCode.Int16;
-                    break;
+                    {
+                        dataType = TypeCode.Int32;
+                        break;
+                    }
+                case "INT64":
+                    {
+                        dataType = TypeCode.Int64;
+                        break;
+                    }
                 case "S":
                 case "STRING":
-                    dataType = TypeCode.String;
-                    break;
+                    {
+                        dataType = TypeCode.String;
+                        break;
+                    }
+                default:
+                    {
+                        throw new NotImplementedException("type not implemented " + type);
+                    }
             }
             return (dataType);
         }

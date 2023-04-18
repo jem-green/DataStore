@@ -3,12 +3,12 @@
 namespace DataStoreTests
 
 {
-    class Program
+    class Function
     {
 
         #region Fields
 
-        static string _name = "datastore";
+        static string _name = "function";
         static string _path = "";
         static bool _reset = true;
         private static PersistentDatastore? _datastore;
@@ -25,7 +25,7 @@ namespace DataStoreTests
             }
             _datastore = new PersistentDatastore(_path, _name, _reset);
             //_datastore = new PersistentDatastore(_path, _name, false);
-            _datastore.Add("id", "Int64", 0);
+            _datastore.Add("id", "Int32", 0);
             _datastore.Add(new PersistentDatastore.FieldType("name", "string", 10));
 
             // Create data

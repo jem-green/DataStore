@@ -104,7 +104,7 @@ Records per second 37.68088856022295
             sw.Start();
             for (int i = 0; i < _datastore.Size; i++)
             {
-                List<Dictionary<string, object>> record = _datastore.Read();           // Read a record
+                List<KeyValuePair<string, object>> record = _datastore.Read(i);           // Read a record
             }
             sw.Stop();
             Console.WriteLine("Read {0} records in {1}", records, sw.Elapsed);
@@ -144,7 +144,7 @@ Records per second 37.68088856022295
             sw.Start();
             for (int i = 0; i < _datastore.Size; i++)
             {
-                List<Dictionary<string, object>> record = _datastore.Read();           // Read a record
+                List<KeyValuePair<string, object>> record = _datastore.Read(i);           // Read a record
             }
             sw.Stop();
             Console.WriteLine("Read {0} records in {1}", records, sw.Elapsed);

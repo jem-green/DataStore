@@ -7,6 +7,7 @@ using TracerLibrary;
 using System.IO;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.ComponentModel.Design;
 
 namespace DatastoreConsole
 {
@@ -578,7 +579,7 @@ namespace DatastoreConsole
                                             _field.Source = Parameter<string>.SourceType.Command;
                                             TraceInternal.TraceVerbose("Set field");
                                         }
-                                        else if ((_command == Command.Create) || (_command == Command.Update)) 
+                                        else if ((_command == Command.Create) || (_command == Command.Update))
                                         {
                                             _fields.Value.Add(fieldName);
                                             _fields.Source = Parameter<List<string>>.SourceType.Command;
@@ -711,7 +712,7 @@ namespace DatastoreConsole
                     case Command.Open:
                         {
                             string output = "OPEN";
-                            if (_dataStore.IsOpen ==false)
+                            if (_dataStore.IsOpen == false)
                             {
                                 _dataStore.Open();
                             }
@@ -753,12 +754,13 @@ namespace DatastoreConsole
                             if (_all.Value == true)
                             {
                                 Console.WriteLine("REMOVE --all");
+                                _dataStore.Remove();
                             }
                             else
                             {
                                 Console.WriteLine("REMOVE --item {0}", _item.Value);
+                                _dataStore.Remove(_item.Value);
                             }
-                            _dataStore.Remove(_item.Value, _all.Value);
                             break;
                         }
                     case Command.Set:
@@ -769,36 +771,50 @@ namespace DatastoreConsole
                         }
                     case Command.Get:
                         {
+                            StringBuilder builder = new StringBuilder();
                             if (_all.Value == true)
                             {
                                 Console.WriteLine("GET --all");
+                                List<PersistentDatastore.FieldType> fields = _dataStore.Get();
+                                for (int j = 0; j < fields.Count; j++)
+                                {
+                                    builder.Append("\"" + fields[j].Name + "\"");
+                                    builder.Append("[");
+                                    builder.Append(fields[j].Type);
+                                    if (fields[j].Type == "String")
+                                    {
+                                        builder.Append("=");
+                                        builder.Append(fields[j].Length);
+                                    }
+                                    builder.Append("]");
+
+                                    if (j < fields.Count - 1)
+                                    {
+                                        builder.Append(",");
+                                    }
+                                }
+                                Console.WriteLine(builder.ToString());
+                                break;
                             }
                             else
                             {
                                 Console.WriteLine("GET --item {0}", _item.Value);
-                            }
-                            StringBuilder builder = new StringBuilder();
-                            List<PersistentDatastore.FieldType> fields = _dataStore.Get(_item.Value, _all.Value);
-                            for (int j = 0; j < fields.Count; j++)
-                            {
-                                builder.Append("\"" + fields[j].Name + "\"");
+                                PersistentDatastore.FieldType field = _dataStore.Get(_item.Value);
+
+                                builder.Append("\"" + field.Name + "\"");
                                 builder.Append("[");
-                                builder.Append(fields[j].Type);
-                                if (fields[j].Type == "String")
+                                builder.Append(field.Type);
+                                if (field.Type == "String")
                                 {
                                     builder.Append("=");
-                                    builder.Append(fields[j].Length);
+                                    builder.Append(field.Length);
                                 }
                                 builder.Append("]");
-
-                                if (j < fields.Count - 1)
-                                {
-                                    builder.Append(",");
-                                }
+                                Console.WriteLine(builder.ToString());
+                                break;
                             }
-                            Console.WriteLine(builder.ToString());
-                            break;
                         }
+           
 
                     // Record
 
@@ -851,43 +867,34 @@ namespace DatastoreConsole
                         }
                     case Command.Read:
                         {
-                            if (_all.Value == true)
-                            {
-                                Console.WriteLine("READ --all");
-                            }
-                            else
-                            {
-                                Console.WriteLine("READ --row {0}", _row.Value);
-                            }
                             StringBuilder builder = new StringBuilder();
                             if (_all.Value == true)
                             {
-                                List<Dictionary<string, object>> records = _dataStore.Read();
+                                Console.WriteLine("READ --all");
+                                List<List<KeyValuePair<string, object>>> records = _dataStore.Read();
                                 if (records.Count > 0)
                                 {
                                     for (int i = 0; i < records.Count; i++)
                                     {
-                                        Dictionary<string, object> record = records[i];
-                                        int j = 0;
-                                        foreach (KeyValuePair<string, object> kvp in record)
+                                        List<KeyValuePair<string, object>> record = records[i];
+                                        for (int j = 0; j < record.Count; j++)
                                         {
-                                            builder.Append("\"" + kvp.Key + "\"");
+                                            builder.Append("\"" + record[j].Key + "\"");
                                             builder.Append("=");
-                                            TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
+                                            TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
                                             switch (typeCode)
                                             {
                                                 case TypeCode.String:
                                                     {
-                                                        builder.Append("\"" + kvp.Value + "\"");
+                                                        builder.Append("\"" + record[j].Value + "\"");
                                                         break;
                                                     }
                                                 default:
                                                     {
-                                                        builder.Append(kvp.Value);
+                                                        builder.Append(record[j].Value);
                                                         break;
                                                     }
                                             }
-                                            j++;
                                             if (j < record.Count - 1)
                                             {
                                                 builder.Append(",");
@@ -899,38 +906,42 @@ namespace DatastoreConsole
                                         }
                                     }
                                 }
+                                Console.WriteLine(builder.ToString());
+                                break;
                             }
                             else
                             {
-                                Dictionary<string, object> record = _dataStore.Read(_row.Value);
-                                int j = 0;
-                                foreach (KeyValuePair<string, object> kvp in record)
+                                Console.WriteLine("READ --row {0}", _row.Value);
+                                List<KeyValuePair<string, object>> record = _dataStore.Read(_row.Value);
+                                if (record.Count > 0)
                                 {
-                                    builder.Append("\"" + kvp.Key + "\"");
-                                    builder.Append("=");
-                                    TypeCode typeCode = Convert.GetTypeCode(kvp.Value);
-                                    switch (typeCode)
+                                    for (int j = 0; j < record.Count; j++)
                                     {
-                                        case TypeCode.String:
-                                            {
-                                                builder.Append("\"" + kvp.Value + "\"");
-                                                break;
-                                            }
-                                        default:
-                                            {
-                                                builder.Append(kvp.Value);
-                                                break;
-                                            }
-                                    }
-                                    j++;
-                                    if (j < record.Count - 1)
-                                    {
-                                        builder.Append(",");
+                                        builder.Append("\"" + record[j].Key + "\"");
+                                        builder.Append("=");
+                                        TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
+                                        switch (typeCode)
+                                        {
+                                            case TypeCode.String:
+                                                {
+                                                    builder.Append("\"" + record[j].Value + "\"");
+                                                    break;
+                                                }
+                                            default:
+                                                {
+                                                    builder.Append(record[j].Value);
+                                                    break;
+                                                }
+                                        }
+                                        if (j < record.Count - 1)
+                                        {
+                                            builder.Append(",");
+                                        }
                                     }
                                 }
+                                Console.WriteLine(builder.ToString());
+                                break;
                             }
-                            Console.WriteLine(builder.ToString());
-                            break;
                         }
                     case Command.Update:
                         {
@@ -954,11 +965,22 @@ namespace DatastoreConsole
                                     Console.WriteLine(output);
                                 }
                             }
+                            else
+                            {
+
+                            }
                             break;
                         }
                     case Command.Delete:
                         {
-                            _dataStore.Delete(_row.Value, _all.Value);
+                            if (_all.Value == true)
+                            {
+                                _dataStore.Delete();
+                            }
+                            else
+                            {
+                                _dataStore.Delete(_row.Value);
+                            }
                             break;
                         }
                 }
@@ -1040,7 +1062,7 @@ namespace DatastoreConsole
             {
                 case "d":
                 case "D":
-                 case "DOUBLE":
+                case "DOUBLE":
                     dataType = TypeCode.Double;
                     break;
                 case "I":
