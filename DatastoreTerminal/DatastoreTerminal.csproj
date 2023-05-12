@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <StartupObject>DatastoreTerminal.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DatastoreLibrary\DatastoreLibrary.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="TracerLibrary">
+      <HintPath>..\ThirdParty\tracer\netcoreapp3.1\TracerLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -3,16 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreConsole", "DataStoreConsole\DatastoreConsole.csproj", "{7E461385-325C-4FA1-B9B5-FCB1CA60E750}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreConsole", "DatastoreConsole\DatastoreConsole.csproj", "{7E461385-325C-4FA1-B9B5-FCB1CA60E750}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreLibrary", "DataStoreLibrary\DatastoreLibrary.csproj", "{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreLibrary", "DatastoreLibrary\DatastoreLibrary.csproj", "{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{872734DB-F423-4404-849B-FF548E4BC10D}"
 	ProjectSection(SolutionItems) = preProject
-		DataStore_CLI.txt = DataStore_CLI.txt
+		Datastore_CLI.txt = Datastore_CLI.txt
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreTest", "DataStoreTest\DatastoreTest.csproj", "{619E059B-7D41-4080-9562-4922F17518DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreTest", "DatastoreTest\DatastoreTest.csproj", "{619E059B-7D41-4080-9562-4922F17518DC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParty", "ThirdParty", "{411228A0-7CEF-407A-88F9-CCB8F49ED2EF}"
 EndProject
@@ -23,24 +23,48 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "netcoreapp3.1", "netcoreapp
 		ThirdParty\tracer\netcoreapp3.1\TracerLibrary.pdb = ThirdParty\tracer\netcoreapp3.1\TracerLibrary.pdb
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatastoreTerminal", "DatastoreTerminal\DatastoreTerminal.csproj", "{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|ARM32 = Debug|ARM32
 		Release|Any CPU = Release|Any CPU
+		Release|ARM32 = Release|ARM32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Debug|ARM32.ActiveCfg = Debug|Any CPU
+		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Debug|ARM32.Build.0 = Debug|Any CPU
 		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Release|ARM32.ActiveCfg = Release|Any CPU
+		{7E461385-325C-4FA1-B9B5-FCB1CA60E750}.Release|ARM32.Build.0 = Release|Any CPU
 		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Debug|ARM32.ActiveCfg = Debug|Any CPU
+		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Debug|ARM32.Build.0 = Debug|Any CPU
 		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Release|ARM32.ActiveCfg = Release|ARM32
+		{1EBF1AB0-5978-4F2D-9956-FC457BFB7357}.Release|ARM32.Build.0 = Release|ARM32
 		{619E059B-7D41-4080-9562-4922F17518DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{619E059B-7D41-4080-9562-4922F17518DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{619E059B-7D41-4080-9562-4922F17518DC}.Debug|ARM32.ActiveCfg = Debug|Any CPU
+		{619E059B-7D41-4080-9562-4922F17518DC}.Debug|ARM32.Build.0 = Debug|Any CPU
 		{619E059B-7D41-4080-9562-4922F17518DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{619E059B-7D41-4080-9562-4922F17518DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{619E059B-7D41-4080-9562-4922F17518DC}.Release|ARM32.ActiveCfg = Release|Any CPU
+		{619E059B-7D41-4080-9562-4922F17518DC}.Release|ARM32.Build.0 = Release|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Debug|ARM32.ActiveCfg = Debug|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Debug|ARM32.Build.0 = Debug|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Release|ARM32.ActiveCfg = Release|Any CPU
+		{E8C8E0C9-6F58-4A1A-82AA-73E054D9C51A}.Release|ARM32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

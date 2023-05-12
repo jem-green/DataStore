@@ -60,7 +60,13 @@ Records per second 37.68088856022295
 
         public static void RandomTest(int records)
         {
-            _datastore = new PersistentDatastore(_path, _name, _reset);
+            _datastore = new PersistentDatastore(_path, _name);
+            _datastore.New();
+            _datastore.Open();
+            if (_reset == true)
+            {
+                _datastore.Reset();
+            }
 
             Console.WriteLine("Records={0}", records);
 
@@ -113,7 +119,13 @@ Records per second 37.68088856022295
 
         public static void SequentialTest(int records)
         {
-            _datastore = new PersistentDatastore(_path, _name, _reset);
+            _datastore = new PersistentDatastore(_path, _name);
+            _datastore.New();
+            _datastore.Open();
+            if (_reset == true)
+            {
+                _datastore.Reset();
+            }
 
             Console.WriteLine("Records={0}", records);
 

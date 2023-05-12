@@ -5,16 +5,21 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>DatastoreConsole</AssemblyName>
     <StartupObject></StartupObject>
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Platforms>AnyCPU;ARM32</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Optimize>True</Optimize>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM32'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="DataHandler_experiment.cs" />
-    <Compile Remove="DataStore_safe.cs" />
+    <Compile Remove="Datastore_safe.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStoreLibrary\DatastoreLibrary.csproj" />
+    <ProjectReference Include="..\DatastoreLibrary\DatastoreLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>

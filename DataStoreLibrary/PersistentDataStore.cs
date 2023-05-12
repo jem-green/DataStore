@@ -9,7 +9,7 @@ namespace DatastoreLibrary
         #region Fields
 
         private string _path = "";
-        private string _name = "PersistentDatastore";
+        private string _name = "";
         private DataHandler _handler;
         private bool _open = false;
 
@@ -81,37 +81,11 @@ namespace DatastoreLibrary
         /// </summary>
         public PersistentDatastore()
         {
-            // Open or create a new store based on the default name
-
-            _handler = new DataHandler(_path, _name);
-            if (_handler.Open() == false)
-            {
-                _open = _handler.New();
-            }
+            // Placeholder
         }
 
         /// <summary>
-        /// Reset, Open or create a new store based on the type based on a default name
-        /// </summary>
-        /// <param name="reset"></param>
-        public PersistentDatastore(bool reset)
-        {
-            // Reset, Open or create a new store
-
-            _handler = new DataHandler(_path, _name);
-            _open = _handler.Open();
-            if (_open == false)
-            {
-                _open = _handler.New();
-            }
-            else if (reset == true)
-            {
-                _open = _handler.Reset();
-            }
-        }
-
-        /// <summary>
-        /// Open or create a new store with a specific name and location
+        /// specific name and location
         /// </summary>
         /// <param name="path"></param>
         /// <param name="filename"></param>
@@ -126,47 +100,34 @@ namespace DatastoreLibrary
             {
                 _name = filename;
             }
-
-            _handler = new DataHandler(_path, _name);
-            _open = _handler.Open();
-            if (_open == false)
-            {
-                _open = _handler.New();
-            }
-        }
-
-        /// <summary>
-        /// Reset, Open or create a new store with a specific name and location
-        /// </summary>
-        /// <param name="path"></param>
-        /// <param name="filename"></param>
-        /// <param name="reset"></param>
-        public PersistentDatastore(string path, string filename, bool reset)
-        {
-            if ((path != null) && (path.Length > 0))
-            {
-                _path = path;
-            }
-
-            if ((filename != null) && (filename.Length > 0))
-            {
-                _name = filename;
-            }
-
-            _handler = new DataHandler(_path, _name);
-            _open = _handler.Open();
-            if (_open == false)
-            {
-                _open = _handler.New();
-            }
-            else if (reset == true)
-            {
-                _open = _handler.Reset();
-            }
         }
 
         #endregion
         #region Properties
+
+        public string Name
+        {
+            set
+            {
+                _name = value;
+            }
+            get
+            {
+                return (_name);
+            }
+        }
+
+        public string Path
+        {
+            set
+            {
+                _path = value;
+            }
+            get
+            {
+                return (_path);
+            }
+        }
 
         public int Size
         {
@@ -197,13 +158,36 @@ namespace DatastoreLibrary
         #region General
         public void New()
         {
-            _handler.New();
+            if (_open == false)
+            {
+                _handler = new DataHandler(_path, _name);
+                _open = _handler.New();
+            }
+        }
+
+        public void New(string path, string name)
+        {
+            if (_open == false)
+            {
+                _handler = new DataHandler(path, name);
+                _open = _handler.New();
+            }
         }
 
         public void Open()
         {
             if (_open == false)
             {
+                _handler = new DataHandler(_path, _name);
+                _open = _handler.Open();
+            }
+        }
+
+        public void Open(string path, string name)
+        {
+            if (_open == false)
+            {
+                _handler = new DataHandler(path, name);
                 _open = _handler.Open();
             }
         }
@@ -212,7 +196,7 @@ namespace DatastoreLibrary
         {
             if (_open == true)
             {
-                _handler.Close();
+                _open = !_handler.Close();
             }
         }
 

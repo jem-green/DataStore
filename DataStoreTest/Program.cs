@@ -1,11 +1,10 @@
 ﻿using DatastoreLibrary;
 
-namespace DataStoreTests
+namespace DatastoreTests
 
 {
     class Program
     {
-
         #region Fields
 
         static string _name = "datastore";
@@ -14,17 +13,23 @@ namespace DataStoreTests
         private static PersistentDatastore? _datastore;
 
         #endregion
+        #region Constructors
 
         static void Main(string[] args)
         {
-            string filenamepath = Path.Join(_path, _name) + ".dbf";
-            if (File.Exists(filenamepath))
+            string filenamepath = Path.Join(_path, _name);
+            if (File.Exists(filenamepath + ".dbf"))
             {
-                File.Delete(_name + ".dbf");
-                File.Delete(_name + ".idx");
+                File.Delete(filenamepath + ".dbf");
+                File.Delete(filenamepath + ".idx");
             }
-            _datastore = new PersistentDatastore(_path, _name, _reset);
-            //_datastore = new PersistentDatastore(_path, _name, false);
+            _datastore = new PersistentDatastore(_path, _name);
+            _datastore.New();
+            _datastore.Open();
+            if (_reset == true)
+            {
+                _datastore.Reset();
+            }
             _datastore.Add("id", "Int64", 0);
             _datastore.Add(new PersistentDatastore.FieldType("name", "string", 10));
 
@@ -68,6 +73,9 @@ namespace DataStoreTests
             PrintAll(_datastore.Read());
 
         }
+
+        #endregion
+        #region Methods
 
         static void Print(List<KeyValuePair<string, object>> record)
         {
@@ -129,5 +137,7 @@ namespace DataStoreTests
             }
             Console.Write("\r\n");
         }
+        
+        #endregion
     }
 }

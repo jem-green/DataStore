@@ -2,15 +2,17 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1; net452; net6.0</TargetFrameworks>
+	<PlatformTargets>AnyCPU; AMD64</PlatformTargets>
+	<Platforms>AnyCPU;ARM32</Platforms>
 	<PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DataStore.cs" />
+    <Compile Remove="Datastore.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="DataStore.old" />
+    <None Remove="Datastore.old" />
   </ItemGroup>
 
   <ItemGroup>

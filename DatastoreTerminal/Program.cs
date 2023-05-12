@@ -5,11 +5,9 @@ using System.Text;
 using System.Diagnostics;
 using TracerLibrary;
 using System.IO;
-using Microsoft.Win32;
 using System.Runtime.InteropServices;
-using System.ComponentModel.Design;
 
-namespace DatastoreConsole
+namespace DatastoreTerminal
 {
     /// <summary>
     /// Simple command line to return results
@@ -62,7 +60,6 @@ namespace DatastoreConsole
 
         #region Fields
         static private bool _isClosing = false;
-        static private HandlerRoutine ctrlCHandler;
         static private PersistentDatastore _dataStore;
         static private Command _command = Command.None;
 
@@ -98,29 +95,6 @@ namespace DatastoreConsole
             Insert = 13
         }
 
-
-        #endregion
-        #region unmanaged
-        // Declare the SetConsoleCtrlHandler function
-        // as external and receiving a delegate.
-
-        [DllImport("Kernel32")]
-        public static extern bool SetConsoleCtrlHandler(HandlerRoutine Handler, bool Add);
-
-        // A delegate type to be used as the handler routine
-        // for SetConsoleCtrlHandler.
-        public delegate bool HandlerRoutine(CtrlTypes CtrlType);
-
-        // An enumerated type for the control messages
-        // sent to the handler routine.
-        public enum CtrlTypes
-        {
-            CTRL_C_EVENT = 0,
-            CTRL_BREAK_EVENT,
-            CTRL_CLOSE_EVENT,
-            CTRL_LOGOFF_EVENT = 5,
-            CTRL_SHUTDOWN_EVENT
-        }
         #endregion
         #region Methods
 
@@ -132,9 +106,6 @@ namespace DatastoreConsole
             Debug.WriteLine("Enter Main()");
 
             int errorCode = 1;
-
-            ctrlCHandler = new HandlerRoutine(ConsoleCtrlCheck);
-            SetConsoleCtrlHandler(ctrlCHandler, true);
 
             // Required for the datastore
 
@@ -198,125 +169,6 @@ namespace DatastoreConsole
 
             _filePath.Value = Environment.CurrentDirectory;
             _filePath.Source = Parameter<string>.SourceType.App;
-
-            if (IsLinux == false)
-            {
-
-                RegistryKey key = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-                string keys = "software\\green\\datastore\\";
-                foreach (string subkey in keys.Split('\\'))
-                {
-                    key = key.OpenSubKey(subkey);
-                    if (key == null)
-                    {
-                        TraceInternal.TraceVerbose("Failed to open registry key " + subkey);
-                        break;
-                    }
-                }
-
-                // Get the log path
-
-                try
-                {
-                    if (key.GetValue("logpath", "").ToString().Length > 0)
-                    {
-                        logPath.Value = (string)key.GetValue("logpath", logPath);
-                        logPath.Source = Parameter<string>.SourceType.Registry;
-                        TraceInternal.TraceVerbose("Use registry value; logPath=" + logPath);
-                    }
-                }
-                catch (NullReferenceException)
-                {
-                    TraceInternal.TraceVerbose("Registry error use default values; logPath=" + logPath.Value);
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
-
-                // Get the log name
-
-                try
-                {
-                    if (key.GetValue("logname", "").ToString().Length > 0)
-                    {
-                        logName.Value = (string)key.GetValue("logname", logName);
-                        logName.Source = Parameter<string>.SourceType.Registry;
-                        TraceInternal.TraceVerbose("Use registry value; LogName=" + logName);
-                    }
-                }
-                catch (NullReferenceException)
-                {
-                    TraceInternal.TraceVerbose("Registry error use default values; LogName=" + logName.Value);
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
-
-                // Get the name
-
-                try
-                {
-                    if (key.GetValue("name", "").ToString().Length > 0)
-                    {
-                        appName.Value = (string)key.GetValue("name", appName);
-                        appName.Source = Parameter<string>.SourceType.Registry;
-                        TraceInternal.TraceVerbose("Use registry value; Name=" + appName);
-                    }
-                }
-                catch (NullReferenceException)
-                {
-                    TraceInternal.TraceVerbose("Registry error use default values; Name=" + appName.Value);
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
-
-                // Get the path
-
-                try
-                {
-                    if (key.GetValue("path", "").ToString().Length > 0)
-                    {
-                        appPath.Value = (string)key.GetValue("path", appPath);
-                        appPath.Source = Parameter<string>.SourceType.Registry;
-                        TraceInternal.TraceVerbose("Use registry value; Path=" + appPath);
-                    }
-                }
-                catch (NullReferenceException)
-                {
-                    TraceInternal.TraceVerbose("Registry error use default values; Path=" + appPath.Value);
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
-
-                // Get the traceLevels
-
-                try
-                {
-                    if (key.GetValue("debug", "").ToString().Length > 0)
-                    {
-                        string traceName = (string)key.GetValue("debug", "Verbose");
-                        traceName = traceName.TrimStart('"');
-                        traceName = traceName.TrimEnd('"');
-                        traceLevels.Value = TraceInternal.TraceLookup(traceName);
-                        traceLevels.Source = Parameter<SourceLevels>.SourceType.Registry;
-                        TraceInternal.TraceVerbose("Use command value Debug=" + traceLevels);
-                    }
-                }
-                catch (NullReferenceException)
-                {
-                    Trace.TraceWarning("Registry error use default values; Debug=" + traceLevels.Value);
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
-            }
 
             // Check if the config file has been paased in and overwrite the registry
 
@@ -383,26 +235,6 @@ namespace DatastoreConsole
             TraceInternal.TraceInformation("Use Name=" + appName.Value + " Path=" + appPath.Value);
 
             // Read in configuration
-
-            //Serialise serialise = new Serialise(appName.Value, appPath.Value);
-            //_clean = serialise.FromXML();
-            //if (_clean != null)
-            //{
-            //    // update configuration if parameters are passed
-
-            //    if (process.Source == Parameter<string>.SourceType.None)
-            //    {
-            //        process.Source = Parameter<string>.SourceType.File;
-            //        process.Value = _clean.Process.ToString();
-            //    }
-
-            //    if (type.Source == Parameter<string>.SourceType.None)
-            //    {
-            //        type.Source = Parameter<string>.SourceType.File;
-            //        type.Value = _clean.Type.ToString();
-            //    }
-            //}
-
 
             string filenamePath = "";
             string extension = "";
@@ -814,7 +646,7 @@ namespace DatastoreConsole
                                 break;
                             }
                         }
-           
+
 
                     // Record
 
@@ -1000,55 +832,6 @@ namespace DatastoreConsole
         #endregion
         #region Private
 
-        private static bool ConsoleCtrlCheck(CtrlTypes ctrlType)
-        {
-            Debug.WriteLine("In ConsoleCtrlCheck()");
-
-            if (_isClosing == false)
-            {
-                switch (ctrlType)
-                {
-                    case CtrlTypes.CTRL_C_EVENT:
-                        {
-                            _isClosing = true;
-                            TraceInternal.TraceVerbose("CTRL+C received:");
-                            break;
-                        }
-                    case CtrlTypes.CTRL_BREAK_EVENT:
-                        {
-                            _isClosing = true;
-                            TraceInternal.TraceVerbose("CTRL+BREAK received:");
-                            break;
-                        }
-                    case CtrlTypes.CTRL_CLOSE_EVENT:
-                        {
-                            _isClosing = true;
-                            TraceInternal.TraceVerbose("Program being closed:");
-                            break;
-                        }
-                    case CtrlTypes.CTRL_LOGOFF_EVENT:
-                    case CtrlTypes.CTRL_SHUTDOWN_EVENT:
-                        {
-                            _isClosing = true;
-                            TraceInternal.TraceVerbose("User is logging off:");
-                            break;
-                        }
-                }
-            }
-            Debug.WriteLine("Out ConsoleCtrlCheck()");
-            Environment.Exit(0);
-            return (true);
-
-        }
-
-        private static bool IsLinux
-        {
-            get
-            {
-                int p = (int)Environment.OSVersion.Platform;
-                return (p == 4) || (p == 6) || (p == 128);
-            }
-        }
         private static TypeCode TypeLookup(string type)
         {
             TypeCode dataType = TypeCode.Int16;
