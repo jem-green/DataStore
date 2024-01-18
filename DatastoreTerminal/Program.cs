@@ -19,7 +19,7 @@ namespace DatastoreTerminal
         // Need the name and location of the file to read
         // could pass this as a single parameter if nothing
         // else is supplied so --name --path
-        // and log to the console all the data in kvp format
+        // and log to the console all the data in KVP format
         //
         // Suggested commands match the methods
         //
@@ -170,7 +170,7 @@ namespace DatastoreTerminal
             _filePath.Value = Environment.CurrentDirectory;
             _filePath.Source = Parameter<string>.SourceType.App;
 
-            // Check if the config file has been paased in and overwrite the registry
+            // Check if the config file has been passed in and overwrite the registry
 
             int elements = args.Length;
             for (int element = 0; element < elements; element++)

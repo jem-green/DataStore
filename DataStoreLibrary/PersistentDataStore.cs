@@ -361,7 +361,7 @@ namespace DatastoreLibrary
         #region Record
 
         /// <summary>
-        /// Creae new record
+        /// Create new record
         /// </summary>
         /// <param name="data"></param>
         public void Create(List<KeyValuePair<string, object>> data)
@@ -521,7 +521,7 @@ namespace DatastoreLibrary
             if (_handler != null)
             {
 
-                // Thnk solution is to read in the data to an array
+                // Think solution is to read in the data to an array
                 // then update any fields then update the entire record
 
                 object[] record = _handler.Read(row);

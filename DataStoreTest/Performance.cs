@@ -6,18 +6,25 @@ using DatastoreLibrary;
 
 namespace DatastoreTest
 {
-    class Performance
+    internal class Performance
     {
         #region Fields
 
-        static string _name = "performance";
-        static string _path = "";
+        static string _name = String.Empty;
+        static string _path = String.Empty;
         static bool _reset = true;
         private static PersistentDatastore? _datastore;
 
         #endregion
+        #region Constructor
 
-        static void Main(string[] args)
+        internal Performance()
+        {
+            _name = "performance";
+            _path = "";
+        }
+
+        internal void Run()
         {
             /*
 Records=1000
@@ -57,8 +64,9 @@ Records per second 37.68088856022295
             RandomTest(records);
 
         }
-
-        public static void RandomTest(int records)
+        #endregion
+        #region Methods
+        private void RandomTest(int records)
         {
             _datastore = new PersistentDatastore(_path, _name);
             _datastore.New();
@@ -117,7 +125,7 @@ Records per second 37.68088856022295
             Console.WriteLine("Records per second {0}", _datastore.Size / sw.Elapsed.TotalSeconds);
         }
 
-        public static void SequentialTest(int records)
+        private void SequentialTest(int records)
         {
             _datastore = new PersistentDatastore(_path, _name);
             _datastore.New();
@@ -163,5 +171,6 @@ Records per second 37.68088856022295
             Console.WriteLine("Records per second {0}", _datastore.Size / sw.Elapsed.TotalSeconds);
 
         }
+        #endregion
     }
 }

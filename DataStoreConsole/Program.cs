@@ -21,7 +21,7 @@ namespace DatastoreConsole
         // Need the name and location of the file to read
         // could pass this as a single parameter if nothing
         // else is supplied so --name --path
-        // and log to the console all the data in kvp format
+        // and log to the console all the data in KVP format
         //
         // Suggested commands match the methods
         //
@@ -55,7 +55,7 @@ namespace DatastoreConsole
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" GET --item --all
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --field --value [--field --value]
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --data "field=value,field1=value1]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" READ --row --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" READ --row --all
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --field --value [--field --value]
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --data "field=value,field1=value1]
         // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" DELETE --row --all
@@ -152,7 +152,7 @@ namespace DatastoreConsole
             _value = new Parameter<object>(null);
             _values = new Parameter<List<object>>(new List<object>());
 
-            // Read in any settings provided in the xml configuration
+            // Read in any settings provided in the XML configuration
 
             int pos = 0;
             Parameter<string> appPath = new Parameter<string>("");
@@ -318,7 +318,7 @@ namespace DatastoreConsole
                 }
             }
 
-            // Check if the config file has been paased in and overwrite the registry
+            // Check if the config file has been passed in and overwrite the registry
 
             int elements = args.Length;
             for (int element = 0; element < elements; element++)
@@ -867,10 +867,12 @@ namespace DatastoreConsole
                         }
                     case Command.Read:
                         {
+                            string output = "READ ";
                             StringBuilder builder = new StringBuilder();
                             if (_all.Value == true)
                             {
-                                Console.WriteLine("READ --all");
+                                output = output + "-all";
+                                Console.WriteLine(output);
                                 List<List<KeyValuePair<string, object>>> records = _dataStore.Read();
                                 if (records.Count > 0)
                                 {
@@ -911,7 +913,8 @@ namespace DatastoreConsole
                             }
                             else
                             {
-                                Console.WriteLine("READ --row {0}", _row.Value);
+                                output = output + String.Format("--row {0}", _row.Value);
+                                Console.WriteLine(output);
                                 List<KeyValuePair<string, object>> record = _dataStore.Read(_row.Value);
                                 if (record.Count > 0)
                                 {
@@ -942,6 +945,7 @@ namespace DatastoreConsole
                                 Console.WriteLine(builder.ToString());
                                 break;
                             }
+                            Console.WriteLine("READ --all");
                         }
                     case Command.Update:
                         {
@@ -1045,8 +1049,8 @@ namespace DatastoreConsole
         {
             get
             {
-                int p = (int)Environment.OSVersion.Platform;
-                return (p == 4) || (p == 6) || (p == 128);
+                PlatformID platfrom = Environment.OSVersion.Platform;
+                return ((platfrom == PlatformID.Unix) || (platfrom == PlatformID.MacOSX));
             }
         }
         private static TypeCode TypeLookup(string type)

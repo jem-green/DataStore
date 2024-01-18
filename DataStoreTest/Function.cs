@@ -3,18 +3,26 @@
 namespace DatastoreTests
 
 {
-    class Function
+    internal class Function
     {
         #region Fields
 
-        static string _name = "function";
-        static string _path = "";
-        static bool _reset = true;
+        static string _name = String.Empty;
+        static string _path = String.Empty;
+        static bool _reset = false;
         private static PersistentDatastore? _datastore;
 
         #endregion
         #region Constructors
-        static void Main(string[] args)
+
+        internal Function()
+        {
+            _name = "function";
+            _path = "";
+            _reset = true;
+        }
+
+        internal void Run()
         {
             string filenamepath = Path.Join(_path, _name) + ".dbf";
             if (File.Exists(filenamepath))
@@ -52,12 +60,12 @@ namespace DatastoreTests
             PrintAll(_datastore.Read());
 
             // Update data
-            // 0, id=101, name="jeremy"
+            // 0, id=101, name="Jeremy"
             // 1, id=1, name="laura"
 
             List<KeyValuePair<string, object>> update = new List<KeyValuePair<string, object>>();
             update.Add(new KeyValuePair<string, object>("id", 101));
-            update.Add(new KeyValuePair<string, object>("name", "jeremy"));
+            update.Add(new KeyValuePair<string, object>("name", "Jeremy"));
             _datastore.Update(update, 0);
             PrintAll(_datastore.Read());
 
@@ -74,7 +82,7 @@ namespace DatastoreTests
         }
         #endregion
         #region Methods
-        static void Print(List<KeyValuePair<string, object>> record)
+        private void Print(List<KeyValuePair<string, object>> record)
         {
             for (int j = 0; j < record.Count; j++)
             {
@@ -102,7 +110,7 @@ namespace DatastoreTests
             Console.Write("\r\n");
         }
 
-        static void PrintAll(List<List<KeyValuePair<string, object>>> records)
+        private void PrintAll(List<List<KeyValuePair<string, object>>> records)
         {
             for (int i = 0; i < records.Count; i++)
             {

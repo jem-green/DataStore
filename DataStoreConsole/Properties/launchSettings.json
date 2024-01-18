@@ -2,7 +2,7 @@
   "profiles": {
     "StorageConsole": {
       "commandName": "Project",
-      "commandLineArgs": "--filepath \"D:\\data\\cardiac\" --filename \"events\" read --row \"0\" --all \"yes\""
+      "commandLineArgs": "--filepath \"C:\\ProgramData\\Cardiac\" --filename \"heartbeat\""
     }
   }
 }
