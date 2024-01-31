@@ -44,21 +44,21 @@ namespace DatastoreConsole
         // Update -
         // Delete - 
         // 
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true"
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" OPEN
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CLOSE
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" RESET
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" NEW
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" ADD --field --type --length
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" REMOVE --item --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" SET --item --filename --type --length
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" GET --item --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --field --value [--field --value]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --data "field=value,field1=value1]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" READ --row --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --field --value [--field --value]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --data "field=value,field1=value1]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" DELETE --row --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\"
+        // DatastoreConsole --filename "datastore" --filepath "c:\" OPEN [--reset]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CLOSE
+        // DatastoreConsole --filename "datastore" --filepath "c:\" RESET
+        // DatastoreConsole --filename "datastore" --filepath "c:\" NEW
+        // DatastoreConsole --filename "datastore" --filepath "c:\" ADD --field "f" --type "t" --length l
+        // DatastoreConsole --filename "datastore" --filepath "c:\" REMOVE --item i | --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" SET --item --filename --type --length
+        // DatastoreConsole --filename "datastore" --filepath "c:\" GET --item i | --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CREATE --field --value [--field --value]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CREATE --data "field=value,field1=value1]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" READ --row r | --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" UPDATE --row --field "f" --value "v" [--field --value]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" UPDATE --row --data "field=value[,field1=value1]"
+        // DatastoreConsole --filename "datastore" --filepath "c:\" DELETE --row r | --all
 
         #region Fields
         static private bool _isClosing = false;
@@ -528,10 +528,7 @@ namespace DatastoreConsole
                             case "/a":
                             case "--all":
                                 {
-                                    string allName = args[++element];
-                                    allName = allName.TrimStart('"');
-                                    allName = allName.TrimEnd('"');
-                                    _all.Value = BooleanLookup(allName);
+                                    _all.Value =true;
                                     _all.Source = Parameter<bool>.SourceType.Command;
                                     TraceInternal.TraceVerbose("Use command value All=" + _all);
                                     break;
@@ -612,10 +609,7 @@ namespace DatastoreConsole
                             case "/r":
                             case "--reset":
                                 {
-                                    string resetName = args[++element];
-                                    resetName = resetName.TrimStart('"');
-                                    resetName = resetName.TrimEnd('"');
-                                    _reset.Value = BooleanLookup(resetName);
+                                    _reset.Value = true;
                                     _reset.Source = Parameter<bool>.SourceType.Command;
                                     TraceInternal.TraceVerbose("Use command value Reset=" + _reset);
                                     break;
@@ -945,7 +939,7 @@ namespace DatastoreConsole
                                 Console.WriteLine(builder.ToString());
                                 break;
                             }
-                            Console.WriteLine("READ --all");
+
                         }
                     case Command.Update:
                         {

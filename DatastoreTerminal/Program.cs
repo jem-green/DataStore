@@ -42,21 +42,25 @@ namespace DatastoreTerminal
         // Update -
         // Delete - 
         // 
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true"
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" OPEN
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CLOSE
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" RESET
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" NEW
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" ADD --field --type --length
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" REMOVE --item --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" SET --item --filename --type --length
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" GET --item --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --field --value [--field --value]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" CREATE --data "field=value,field1=value1]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" READ --row --all
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --field --value [--field --value]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" UPDATE --row --data "field=value,field1=value1]
-        // DatastoreConsole --filename "datastore" --filepath "c:\" --reset "true" DELETE --row --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\"
+        // DatastoreConsole --filename "datastore" --filepath "c:\" OPEN
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CLOSE
+        // DatastoreConsole --filename "datastore" --filepath "c:\" RESET
+        // DatastoreConsole --filename "datastore" --filepath "c:\" NEW
+        // DatastoreConsole --filename "datastore" --filepath "c:\" ADD --field --type --length
+        // DatastoreConsole --filename "datastore" --filepath "c:\" REMOVE --item --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" SET --item --filename --type --length
+        // DatastoreConsole --filename "datastore" --filepath "c:\" GET --item --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CREATE --field --value [--field --value]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" CREATE --data "field=value,field1=value1]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" READ --row --all
+        // DatastoreConsole --filename "datastore" --filepath "c:\" UPDATE --row --field --value [--field --value]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" UPDATE --row --data "field=value,field1=value1]
+        // DatastoreConsole --filename "datastore" --filepath "c:\" DELETE --row --all
+
+        // DatastoreConsole "c:\datastore" READ --row -all
+
+
 
         #region Fields
         static private bool _isClosing = false;
@@ -123,7 +127,7 @@ namespace DatastoreTerminal
             _value = new Parameter<object>(null);
             _values = new Parameter<List<object>>(new List<object>());
 
-            // Read in any settings provided in the xml configuration
+            // Read in any settings provided in the XML configuration
 
             int pos = 0;
             Parameter<string> appPath = new Parameter<string>("");
@@ -444,10 +448,7 @@ namespace DatastoreTerminal
                             case "/r":
                             case "--reset":
                                 {
-                                    string resetName = args[++element];
-                                    resetName = resetName.TrimStart('"');
-                                    resetName = resetName.TrimEnd('"');
-                                    _reset.Value = BooleanLookup(resetName);
+                                    _reset.Value = true;
                                     _reset.Source = Parameter<bool>.SourceType.Command;
                                     TraceInternal.TraceVerbose("Use command value Reset=" + _reset);
                                     break;
@@ -543,6 +544,8 @@ namespace DatastoreTerminal
 
                     case Command.Open:
                         {
+                            // Potentially reopen
+
                             string output = "OPEN";
                             if (_dataStore.IsOpen == false)
                             {
@@ -553,8 +556,13 @@ namespace DatastoreTerminal
                         }
                     case Command.Close:
                         {
+                            // 
+
                             string output = "CLOSE";
-                            _dataStore.Close();
+                            if (_dataStore.IsOpen == true)
+                            {
+                                _dataStore.Close();
+                            }
                             Console.WriteLine(output);
                             break;
                         }
@@ -568,7 +576,10 @@ namespace DatastoreTerminal
                     case Command.New:
                         {
                             string output = "NEW";
-                            _dataStore.New();
+                            if (_dataStore.IsOpen == false)
+                            {
+                                _dataStore.New();
+                            }
                             Console.WriteLine(output);
                             break;
                         }
@@ -646,7 +657,6 @@ namespace DatastoreTerminal
                                 break;
                             }
                         }
-
 
                     // Record
 

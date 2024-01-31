@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1; net452; net6.0</TargetFrameworks>
-	<PlatformTargets>AnyCPU; AMD64</PlatformTargets>
-	<Platforms>AnyCPU;ARM32</Platforms>
+	<PlatformTargets>AnyCPU</PlatformTargets>
+	<Platforms>AnyCPU</Platforms>
 	<PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 

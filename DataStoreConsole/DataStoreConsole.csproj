@@ -6,7 +6,7 @@
     <AssemblyName>DatastoreConsole</AssemblyName>
     <StartupObject></StartupObject>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <Platforms>AnyCPU;ARM32</Platforms>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

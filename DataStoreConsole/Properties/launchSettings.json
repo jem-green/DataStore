@@ -1,8 +1,12 @@
 {
   "profiles": {
-    "StorageConsole": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "Datastore": {
       "commandName": "Project",
-      "commandLineArgs": "--filepath \"C:\\ProgramData\\Cardiac\" --filename \"heartbeat\""
+      "commandLineArgs": "--filename heartbeat.dbf --filepath \"C:\\ProgramData\\cardiac\\cardiac.db\" READ --row 1"
     }
   }
 }
