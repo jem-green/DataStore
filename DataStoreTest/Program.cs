@@ -21,8 +21,8 @@ namespace DatastoreTests
             Function f = new Function();
             f.Run();
 
-            //Performance p = new Performance();
-            //p.Run();
+            Performance p = new Performance();
+            p.Run();
 
         }
         #endregion

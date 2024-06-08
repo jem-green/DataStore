@@ -1,19 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1; net452; net6.0</TargetFrameworks>
-	<PlatformTargets>AnyCPU</PlatformTargets>
-	<Platforms>AnyCPU</Platforms>
-	<PlatformTarget>AnyCPU</PlatformTarget>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Datastore.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Datastore.old" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Collections" Version="4.3.0" />

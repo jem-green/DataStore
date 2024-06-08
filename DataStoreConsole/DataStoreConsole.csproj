@@ -4,19 +4,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>DatastoreConsole</AssemblyName>
-    <StartupObject></StartupObject>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <Platforms>AnyCPU</Platforms>
+    <StartupObject>DatastoreConsole.Program</StartupObject>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM32'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
-
+  
   <ItemGroup>
     <Compile Remove="DataHandler_experiment.cs" />
     <Compile Remove="Datastore_safe.cs" />
@@ -32,7 +22,7 @@
 
   <ItemGroup>
     <Reference Include="TracerLibrary">
-      <HintPath>..\ThirdParty\tracer\netcoreapp3.1\TracerLibrary.dll</HintPath>
+      <HintPath>..\ThirdParty\tracer\net6.0\TracerLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DatastoreTerminal": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,5 +1,4 @@
 ﻿using System;
-
 using System.IO;
 using System.Reflection;
 
@@ -546,7 +545,7 @@ namespace DatastoreLibrary
             binaryWriter.Write(_size);                  // Write the size of data
             binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
             binaryWriter.BaseStream.SetLength(_data);   // Fix the size as we are resetting
-            binaryWriter.Close();
+            binaryWriter.Close();                       //
 
             // Re-create the index
 

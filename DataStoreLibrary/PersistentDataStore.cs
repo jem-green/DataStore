@@ -322,7 +322,7 @@ namespace DatastoreLibrary
             }
         }
 
-        // WHat do we return here an object / stuc with the field structure
+        // WHat do we return here an object / structure with the field structure
 
         public FieldType Get(int item)
         {
