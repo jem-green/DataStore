@@ -1138,7 +1138,7 @@ namespace DatastoreLibrary
                     BinaryReader indexReader = new BinaryReader(stream);
                     BinaryWriter indexWriter = new BinaryWriter(stream);
 
-                    // copy the ponter and length data upwards 
+                    // copy the pointer and length data upwards 
 
                     for (int counter = _size; counter > row; counter--)
                     {
@@ -1164,10 +1164,10 @@ namespace DatastoreLibrary
 
                     int offset = 0;
                     offset += 1;    // Including the flag
-                    for (int i = 0; i < record.Length; i++)
+                    for (int count = 0; count < record.Length; count++)
                     {
-                        object data = record[i];
-                        switch (_properties[i].Type)
+                        object data = record[count];
+                        switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
                                 {
@@ -1186,7 +1186,7 @@ namespace DatastoreLibrary
                                 }
                             case TypeCode.String:
                                 {
-                                    int length = _properties[i].Length;
+                                    int length = _properties[count].Length;
                                     if (length < 0)
                                     {
                                         length = Convert.ToString(data).Length;
@@ -1230,10 +1230,10 @@ namespace DatastoreLibrary
                     binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
                     byte flag = 0;
                     binaryWriter.Write(flag);
-                    for (int i = 0; i < record.Length; i++)
+                    for (int count = 0; count < record.Length; count++)
                     {
-                        object data = record[i];
-                        switch (_properties[i].Type)
+                        object data = record[count];
+                        switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
                                 {
@@ -1253,19 +1253,19 @@ namespace DatastoreLibrary
                             case TypeCode.String:
                                 {
                                     string text = Convert.ToString(data);
-                                    if (_properties[i].Length < 0)
+                                    if (_properties[count].Length < 0)
                                     {
                                         binaryWriter.Write(text);
                                     }
                                     else
                                     {
-                                        if (text.Length > _properties[i].Length)
+                                        if (text.Length > _properties[count].Length)
                                         {
-                                            text = text.Substring(0, _properties[i].Length);
+                                            text = text.Substring(0, _properties[count].Length);
                                         }
                                         else
                                         {
-                                            text = text.PadRight(_properties[i].Length, '\0');
+                                            text = text.PadRight(_properties[count].Length, '\0');
                                         }
                                         binaryWriter.Write(text);
                                     }
@@ -1341,8 +1341,19 @@ namespace DatastoreLibrary
                                     }
                                 case TypeCode.String:
                                     {
-                                        // should not need to lenght check again here
-                                        data[count] = binaryReader.ReadString();
+                                        // should not need to length check again here
+                                        // except zero padding is getting passed down
+                                        // and effecting string manipulation
+
+                                        string text = binaryReader.ReadString();
+                                        if (_properties[count].Length < 0)
+                                        {
+                                            data[count] = text;
+                                        }
+                                        else
+                                        {
+                                            data[count] =text.TrimEnd('\0');
+                                        }
                                         break;
                                     }
                                 default:
@@ -1384,7 +1395,7 @@ namespace DatastoreLibrary
                     // Calculate the size of the new record
                     // if greater than the space append and update
                     // the index
-                    // if less then overwite the space with the new record
+                    // if less then overwrite the space with the new record
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
                     indexReader.BaseStream.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
@@ -1396,10 +1407,10 @@ namespace DatastoreLibrary
 
                     int length = 0;
                     length += 1;    // Including the flag
-                    for (int i = 0; i < record.Length; i++)
+                    for (int count = 0; count < record.Length; count++)
                     {
-                        object data = record[i];
-                        switch (_properties[i].Type)
+                        object data = record[count];
+                        switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
                                 {
@@ -1418,7 +1429,7 @@ namespace DatastoreLibrary
                                 }
                             case TypeCode.String:
                                 {
-                                    int l = _properties[i].Length;
+                                    int l = _properties[count].Length;
                                     if (l < 0)
                                     {
                                         l = Convert.ToString(data).Length;
@@ -1446,10 +1457,10 @@ namespace DatastoreLibrary
 
                         byte flag = 0;
                         binaryWriter.Write(flag);
-                        for (int i = 0; i < record.Length; i++)
+                        for (int count = 0; count < record.Length; count++)
                         {
-                            object data = record[i];
-                            switch (_properties[i].Type)
+                            object data = record[count];
+                            switch (_properties[count].Type)
                             {
                                 case TypeCode.Int16:
                                     {
@@ -1469,19 +1480,19 @@ namespace DatastoreLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_properties[i].Length < 0)
+                                        if (_properties[count].Length < 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
                                         else
                                         {
-                                            if (text.Length > _properties[i].Length)
+                                            if (text.Length > _properties[count].Length)
                                             {
-                                                text = text.Substring(0, _properties[i].Length);
+                                                text = text.Substring(0, _properties[count].Length);
                                             }
                                             else
                                             {
-                                                text = text.PadRight(_properties[i].Length, '\0');
+                                                text = text.PadRight(_properties[count].Length, '\0');
                                             }
                                             binaryWriter.Write(text);
                                         }
@@ -1527,10 +1538,10 @@ namespace DatastoreLibrary
                         binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
                         flag = 0;
                         binaryWriter.Write(flag);
-                        for (int i = 0; i < record.Length; i++)
+                        for (int count = 0; count < record.Length; count++)
                         {
-                            object data = record[i];
-                            switch (_properties[i].Type)
+                            object data = record[count];
+                            switch (_properties[count].Type)
                             {
                                 case TypeCode.Int16:
                                     {
@@ -1550,19 +1561,19 @@ namespace DatastoreLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_properties[i].Length < 0)
+                                        if (_properties[count].Length < 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
                                         else
                                         {
-                                            if (text.Length > _properties[i].Length)
+                                            if (text.Length > _properties[count].Length)
                                             {
-                                                text = text.Substring(0, _properties[i].Length);
+                                                text = text.Substring(0, _properties[count].Length);
                                             }
                                             else
                                             {
-                                                text = text.PadRight(_properties[i].Length, '\0');
+                                                text = text.PadRight(_properties[count].Length, '\0');
                                             }
                                             binaryWriter.Write(text);
                                         }
