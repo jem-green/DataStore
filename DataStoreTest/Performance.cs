@@ -100,7 +100,7 @@ Records per second 37.68088856022295
             }
 
             _datastore.Add("id", "Int32", 0);
-            _datastore.Add(new PersistentDatastore.FieldType("name", "string", 10));
+            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10,false));
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -145,8 +145,8 @@ Records per second 37.68088856022295
                 items[i] = i;
             }
 
-            _datastore.Add("id", "Int32", 0);
-            _datastore.Add(new PersistentDatastore.FieldType("name", "string", 10));
+            _datastore.Add("id", TypeCode.Int32, 0,true);
+            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10,false));
 
             Stopwatch sw = new Stopwatch();
             sw.Start();

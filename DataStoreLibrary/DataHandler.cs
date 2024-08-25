@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Specialized;
 using System.IO;
+using System.Numerics;
 using System.Reflection;
-
+using System.Runtime.InteropServices;
 
 namespace DatastoreLibrary
 {
@@ -142,19 +144,37 @@ namespace DatastoreLibrary
         header
         ------
 
-        00 - unsigned int16 - length of the key 
-        //00 - LEB128 - Length of keyname handled by the binary writer and reader in LEB128 format
-        //bytes - string
+        0 - byte - length of the key
+        0 - byte - index of item used as the key
 
         index
         -----
 
-        bytes - key (key length)
+        00 - unsigned int16 - index (assuming row)
         00 - unsigned int16 - pointer to data
+
+        s - string
+        00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format
+        bytes - string
+        
+        b - bool
+        0 - unsigned byte - 0 = false, 1 = true
+         
+        i - int
+        0000 - 32 bit - defaults to zero
+         
+        d - double
+        000000000 - 64 bit - defaults to zero
+        
+        B - blob
+        0000 - unsigned int32 - Length of blob
+        bytes - data
+        
         00 - unsigned int16 - length of data
         ...
-        bytes - key (key length)
+        00 - unsigned int16 - index (assuming row) + 1
         00 - unsigned int16 - pointer to data + 1 
+        xx - varies - data + 1
         00 - unsigned int16 - length of data + 1
         
         */
@@ -174,8 +194,8 @@ namespace DatastoreLibrary
         private Property[] _properties;         // Cache of fields
 
         private readonly UInt16 _begin = 2;     // Pointer to the beginning of the index area
-        private sbyte _keyLength = 0;           // key length
-        private byte _keyItem = 0;              // field item used for key
+        private byte _keyLength = 0;            // key length not set until a primary key is defined
+        private byte _keyItem = 0;              // key item used to lookup the property
 
         /// <summary>
         /// Field properties
@@ -186,10 +206,10 @@ namespace DatastoreLibrary
             byte _flag;
             byte _order;
             TypeCode _type;
-            sbyte _length;
+            byte _length;
             bool _primary;
 
-            internal Property(string name, byte flag, byte order, TypeCode type, sbyte length, bool primary)
+            internal Property(string name, byte flag, byte order, TypeCode type, byte length, bool primary)
             {
                 _name = name;
                 _flag = flag;
@@ -211,7 +231,7 @@ namespace DatastoreLibrary
                 }
             }
 
-            internal sbyte Length
+            internal byte Length
             {
                 set
                 {
@@ -283,7 +303,7 @@ namespace DatastoreLibrary
         }
 
         #endregion
-        #region Constructor
+        #region Constructors
 
         /// <summary>
         /// Create default with path, name location
@@ -331,18 +351,6 @@ namespace DatastoreLibrary
             }
         }
 
-        internal string Index
-        {
-            set
-            {
-                _index = value;
-            }
-            get
-            {
-                return (_index);
-            }
-        }
-
         internal UInt16 Size
         {
             get
@@ -363,7 +371,7 @@ namespace DatastoreLibrary
         #region Methods
 
 
-        // General methods (OCRN)
+        // General methods (OCRIN)
         // Open -
         // Close - 
         // Reset -
@@ -376,8 +384,9 @@ namespace DatastoreLibrary
         // Set -
         // Get -
         // 
-        // Record methods (CRUD) 
+        // Record methods (CIRUD) 
         // Create -
+        // Insert - 
         // Read -
         // Update -
         // Delete - 
@@ -414,11 +423,13 @@ namespace DatastoreLibrary
                     byte flag = binaryReader.ReadByte();                                // Read the status flag
                     byte order = binaryReader.ReadByte();                               // Read the field order
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();              // Read the field Type
-                    sbyte length = binaryReader.ReadSByte();                            // Read the field Length
+                    byte length = binaryReader.ReadByte();                             // Read the field Length
                     bool primary = false;                                               // Read if the primary key
                     if (binaryReader.ReadByte() == 1)
                     {
                         primary = true;
+                        //_keyItem = (byte)count;
+                        //_keyLength = GetTypeLength(typeCode);
                     }
                     string name = binaryReader.ReadString();                            // Read the field Name
                     if (flag == 0)  // Not deleted or spare so add rather than skip
@@ -431,9 +442,11 @@ namespace DatastoreLibrary
                 binaryReader.Close();
 
                 // Open the index
+                // Problem here is that we may not have defined the primary key
+                // Some somehow need to recreate the index, once the properties are defined
 
                 BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                _keyLength = indexReader.ReadSByte();
+                _keyLength = indexReader.ReadByte();
                 _keyItem = indexReader.ReadByte();
                 indexReader.Close();
 
@@ -469,11 +482,14 @@ namespace DatastoreLibrary
                 binaryWriter.Close();
 
                 // Create the index
+                // Problem here is that we don't know if there is going to be
+                // a primary index.
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
-                _keyLength = 2;                             // Assume two byte key length for row
-                indexWriter.Write((sbyte)_keyLength);       // Write the key length
-                indexWriter.Write((byte)_keyItem);          // Wite the field property item reference
+                _keyLength = 0;                             // Assume two byte key length for row
+                _keyItem = 0;                               // If the key length = 0 then there is no key item would like this to be -1
+                indexWriter.Write(_keyLength);              // Write the key length
+                indexWriter.Write(_keyItem);                // Write the field property item reference
                 indexWriter.BaseStream.SetLength(2);        // Fix the size as we are resetting
                 indexWriter.Close();
 
@@ -512,9 +528,10 @@ namespace DatastoreLibrary
                 // Recreate the index
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
-                _keyLength = 2;                             // Assume two byte key length for row
-                indexWriter.Write((sbyte)_keyLength);       // Write the key length
-                indexWriter.Write((byte)_keyItem);          // Wite the field property item reference
+                _keyLength = 0;                             // Assume two byte key length for row
+                _keyItem = 0;                               // If the key length = 0 then there is no key item would like this to be -1
+                indexWriter.Write(_keyLength);       // Write the key length
+                indexWriter.Write(_keyItem);          // Write the field property item reference
                 indexWriter.BaseStream.SetLength(2);        // Fix the size as we are resetting
                 indexWriter.Close();
 
@@ -539,7 +556,7 @@ namespace DatastoreLibrary
             BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
 
-            _size = 0;                                  // Zero the sizw of the data
+            _size = 0;                                  // Zero the size of the data
             _pointer = 0;                               // Offset from the data areas so zero
 
             binaryWriter.Write(_size);                  // Write the size of data
@@ -550,9 +567,8 @@ namespace DatastoreLibrary
             // Re-create the index
 
             BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-            _keyLength = 2;                             // Assume two byte key length for row
-            indexWriter.Write((sbyte)_keyLength);       // Write the key length
-            indexWriter.Write((byte)_keyItem);          // Wite the field property item reference
+            indexWriter.Write(_keyLength);              // Write the key length
+            indexWriter.Write(_keyItem);                // Write the field property item reference
             indexWriter.BaseStream.SetLength(2);        // Fix the size as we are resetting
             indexWriter.Close();
 
@@ -573,7 +589,7 @@ namespace DatastoreLibrary
             {
                 // Need to delete both data and index
                 File.Delete(filenamePath + ".dbf");
-                // Assumption here is the the index also exists
+                // Assumption here is the index also exists
                 if (File.Exists(indexPath + ".idx") == true)
                 {
                     File.Delete(indexPath + ".idx");
@@ -581,6 +597,29 @@ namespace DatastoreLibrary
                 close = true;
             }
             return (close);
+        }
+
+        internal bool Index()
+        {
+            bool index = false;
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
+
+            if (File.Exists(indexPath + ".idx") == true)
+            {
+                if (_keyLength > 0) // The primary key has been defined
+                {
+                    // Need to delete index
+                    File.Delete(filenamePath + ".idx");
+                    BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
+                    indexWriter.Write(_keyLength);              // Write the key length
+                    indexWriter.Write(_keyItem);                // Write the field property item reference
+                    indexWriter.BaseStream.SetLength(2);        // Fix the size as we are resetting
+                    indexWriter.Close();
+                    index = true;
+                }
+            }
+            return(index);
         }
 
         #endregion
@@ -603,7 +642,7 @@ namespace DatastoreLibrary
                 // 0 - unsigned byte - flag 0 = normal, 1 = deleted, 2 = Spare
                 // 0 - unsigned byte - Field order (0-255)
                 // 0 - unsigned byte - Field type enum value (0-255)
-                // 0 - unsigned byte - If string or blob set the length (0-255)
+                // 0 - signed byte - If string or blob set the length (0-255)
                 // 0 - unsigned byte - Primary key 0 - No, 1 - Yes (0-1)
                 // 00 - leb128 - Length of element handled by the binary writer and reader in LEB128 format
                 // bytes - string
@@ -626,7 +665,7 @@ namespace DatastoreLibrary
                             Array.Resize(ref _properties, _items + 1);
                             _properties[_items] = field;
 
-                            // Calcualte the data size
+                            // Calculate the data size
 
                             int offset = 0;
                             int length = field.Name.Length;
@@ -634,8 +673,8 @@ namespace DatastoreLibrary
 
                             // move the data
 
-                            // this would need to shift the data area upwards to accomodate the
-                            // new field entry. Seems like a design problem, but may be somthing
+                            // this would need to shift the data area upwards to accommodate the
+                            // new field entry. Seems like a design problem, but may be something
                             // to start with assuming that fields are not generally added later. Could
                             // create some spare space when we initialise the database so fields
                             // can get added into the space.
@@ -650,10 +689,12 @@ namespace DatastoreLibrary
                             binaryWriter.Write(flag);                       // write the field Flag
                             binaryWriter.Write(order);                      // write the field Order
                             binaryWriter.Write((byte)typeCode);             // write the field Type
-                            binaryWriter.Write((sbyte)field.Length);        // write the field Length
+                            binaryWriter.Write(field.Length);               // write the field Length
                             if (field.Primary == true)                      // write the primary key indicator (byte)
                             {
                                 binaryWriter.Write((byte)1);
+                                _keyItem = (byte)_items;                    // write the key index
+                                _keyLength = GetTypeLength(typeCode);       // write the key length based it type
                             }
                             else
                             {
@@ -702,7 +743,7 @@ namespace DatastoreLibrary
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                // The problem here is i dont know the length of the field
+                // The problem here is i don't know the length of the field
                 // without reading the actual record
 
                 BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
@@ -718,7 +759,7 @@ namespace DatastoreLibrary
                     flag = binaryReader.ReadByte();                             // Read the status flag
                     byte order = binaryReader.ReadByte();                       // Read the order
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();      // Read the field Type
-                    sbyte length = binaryReader.ReadSByte();                    // Read the field Length
+                    byte length = binaryReader.ReadByte();                    // Read the field Length
                     bool primary = false;                                       // Read if the primary key
                     if (binaryReader.ReadByte() == 1)
                     {
@@ -747,7 +788,7 @@ namespace DatastoreLibrary
                 binaryWriter.Dispose();                                     //
 
                 // Move the cache data downwards
-                // The challnge is then ensuring that the 
+                // The challenge is then ensuring that the 
                 // deleted field is skipped when read in
                 // the other methods
 
@@ -773,9 +814,9 @@ namespace DatastoreLibrary
             {
                 if ((item >= 0) && (item < _items))
                 {
-                    // The problem here is that i dont have a pointer index
-                    // and i dont know the length of the field
-                    // without reading the actual reecord and then itterate
+                    // The problem here is that i don't have a pointer index
+                    // and i don't know the length of the field
+                    // without reading the actual record and then iterate
                     // through the list
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
@@ -847,8 +888,8 @@ namespace DatastoreLibrary
                     int l = field.Name.Length;
                     offset = offset + LEB128.Size(l) + l;
 
-                    // The problem here is i dont know the length of the field
-                    // without reading the actual reecord
+                    // The problem here is i don't know the length of the field
+                    // without reading the actual record
                     // could assume the cache is correct
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
@@ -872,7 +913,7 @@ namespace DatastoreLibrary
                     if (offset > length)
                     {
                         // The new field is longer than the old field
-                        // not sure what im doing here now as looks wrong
+                        // not sure what I'm doing here now as looks wrong
                         // what it should do it mark the field as deleted and 
                         // insert the new field at the end if no data written yet
 
@@ -883,11 +924,11 @@ namespace DatastoreLibrary
                             binaryWriter.Seek(_data, SeekOrigin.Begin);
 
                             byte flag = 0;
-                            binaryWriter.Write((byte)length);               // write the length
+                            binaryWriter.Write(length);                     // write the length
                             binaryWriter.Write(flag);                       // write the field Flag
-                            binaryWriter.Write((byte)field.Order);          // write the field Order
+                            binaryWriter.Write(field.Order);                // write the field Order
                             binaryWriter.Write((byte)field.Type);           // write the field Type
-                            binaryWriter.Write((sbyte)field.Length);        // write the field Length
+                            binaryWriter.Write(field.Length);               // write the field Length
                             if (field.Primary == true)                      // write the primary key indicator (byte)
                             {
                                 binaryWriter.Write((byte)1);
@@ -929,9 +970,9 @@ namespace DatastoreLibrary
                         // Keep the field space as original
                         // No need to overwrite the flag
 
-                        binaryWriter.Write((byte)field.Type);          // write the field Type
-                        binaryWriter.Write((sbyte)field.Length);       // write the field Length
-                        if (field.Primary == true)                     // write the primary key indicator (byte)
+                        binaryWriter.Write((byte)field.Type);           // write the field Type
+                        binaryWriter.Write(field.Length);               // write the field Length
+                        if (field.Primary == true)                      // write the primary key indicator (byte)
                         {
                             binaryWriter.Write((byte)1);
                         }
@@ -989,14 +1030,69 @@ namespace DatastoreLibrary
                 // append the new pointer the new index file
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Append));
-                indexWriter.Write((UInt16)_size);   // write the index assume row
+                
+                // Check the type of index, if not set default to row
+                // difficulty here is if we want to have an ordered index then
+                // need to do a binary search and find where to insert and then copy all
+                // the data downwards.
+                
+                indexWriter.Write((UInt16)_size);   // Write the default index assume row
                 indexWriter.Write(_pointer);        // Write the pointer
+
+                if (_keyLength > 0)                 // Write the primary key if set
+                {
+                    object key = record[_keyItem];
+                    switch (_properties[_keyItem].Type)
+                    {
+                        case TypeCode.Int16:
+                            {
+                                indexWriter.Write((Int16)key);
+                                break;
+                            }
+                        case TypeCode.Int32:
+                            {
+                                indexWriter.Write((Int32)key);
+                                break;
+                            }
+                        case TypeCode.Int64:
+                            {
+                                indexWriter.Write((Int64)key);
+                                break;
+                            }
+                        case TypeCode.String:
+                            {
+                                string text = Convert.ToString(key);
+                                if (_properties[_keyItem].Length == 0)
+                                {
+                                    indexWriter.Write(text);
+                                }
+                                else
+                                {
+                                    if (text.Length > _properties[_keyItem].Length)
+                                    {
+                                        text = text.Substring(0, _properties[_keyItem].Length);
+                                    }
+                                    else
+                                    {
+                                        text = text.PadRight(_properties[_keyItem].Length, '\0');
+                                    }
+                                    indexWriter.Write(text);
+                                }
+                                break;
+                            }
+                        default:
+                            {
+                                throw new NotImplementedException();
+                            }
+                    }
+                }
 
                 int offset = 0;
                 offset += 1;    // Including the flag
                 for (int i = 0; i < record.Length; i++)
                 {
                     object data = record[i];
+                    // Some duplication here with the GetTypeLength
                     switch (_properties[i].Type)
                     {
                         case TypeCode.Int16:
@@ -1017,7 +1113,7 @@ namespace DatastoreLibrary
                         case TypeCode.String:
                             {
                                 int length = _properties[i].Length;
-                                if (length < 0)
+                                if (length == 0)
                                 {
                                     length = Convert.ToString(data).Length;
                                 }
@@ -1036,7 +1132,7 @@ namespace DatastoreLibrary
 
                 // Update the index length
 
-                indexWriter.Write((UInt16)offset);  // Write the length
+                indexWriter.Write((UInt16)offset);  // Write the data length
                 indexWriter.Close();
                 indexWriter.Dispose();
 
@@ -1083,7 +1179,7 @@ namespace DatastoreLibrary
                         case TypeCode.String:
                             {
                                 string text = Convert.ToString(data);
-                                if (_properties[i].Length < 0)
+                                if (_properties[i].Length == 0)
                                 {
                                     binaryWriter.Write(text);
                                 }
@@ -1142,13 +1238,19 @@ namespace DatastoreLibrary
 
                     for (int counter = _size; counter > row; counter--)
                     {
-                        indexReader.BaseStream.Seek(_begin + (counter - 1) * (_keyLength + 4), SeekOrigin.Begin);         // Move to location of the index
-                        UInt16 key = indexReader.ReadUInt16();                                      // Read the key from the index file
+                        indexReader.BaseStream.Seek(_begin + (counter - 1) * (_keyLength + 6), SeekOrigin.Begin);         // Move to location of the index
+                        UInt16 index = indexReader.ReadUInt16();                                      // Read the key from the index file
                         UInt16 pointer = indexReader.ReadUInt16();                                  // Read the pointer from the index file
+                        
+                        // Get the key
+                        
+                        byte[] key = indexReader.ReadBytes(_keyLength);
+                        
                         UInt16 length = indexReader.ReadUInt16();                                   // Read the length from the index file
-                        indexWriter.Seek(_begin + counter * (_keyLength + 4), SeekOrigin.Begin);     // Move to location of the index
-                        indexWriter.Write(key);
+                        indexWriter.Seek(_begin + counter * (_keyLength + 6), SeekOrigin.Begin);     // Move to location of the index
+                        indexWriter.Write(index);
                         indexWriter.Write(pointer);
+                        indexWriter.Write(key,0,_keyLength);
                         indexWriter.Write(length);
                     }
                     indexWriter.Close();
@@ -1158,15 +1260,66 @@ namespace DatastoreLibrary
                     // insert the new record
 
                     indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexWriter.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);              // Move to location of the index
-                    indexWriter.Write(_size);           // Write the key
+                    indexWriter.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);              // Move to location of the index
+                    indexWriter.Write(_size);           // Write the index
                     indexWriter.Write(_pointer);        // Write the pointer
+
+                    // Write the key
+
+                    if (_keyLength > 0)                 // Write the primary key if set
+                    {
+                        object key = record[_keyItem];
+                        switch (_properties[_keyItem].Type)
+                        {
+                            case TypeCode.Int16:
+                                {
+                                    indexWriter.Write((Int16)key);
+                                    break;
+                                }
+                            case TypeCode.Int32:
+                                {
+                                    indexWriter.Write((Int32)key);
+                                    break;
+                                }
+                            case TypeCode.Int64:
+                                {
+                                    indexWriter.Write((Int64)key);
+                                    break;
+                                }
+                            case TypeCode.String:
+                                {
+                                    string text = Convert.ToString(key);
+                                    if (_properties[_keyItem].Length == 0)
+                                    {
+                                        indexWriter.Write(text);
+                                    }
+                                    else
+                                    {
+                                        if (text.Length > _properties[_keyItem].Length)
+                                        {
+                                            text = text.Substring(0, _properties[_keyItem].Length);
+                                        }
+                                        else
+                                        {
+                                            text = text.PadRight(_properties[_keyItem].Length, '\0');
+                                        }
+                                        indexWriter.Write(text);
+                                    }
+                                    break;
+                                }
+                            default:
+                                {
+                                    throw new NotImplementedException();
+                                }
+                        }
+                    }
 
                     int offset = 0;
                     offset += 1;    // Including the flag
                     for (int count = 0; count < record.Length; count++)
                     {
                         object data = record[count];
+                        // Some duplication here with GetTypeLength
                         switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
@@ -1187,7 +1340,7 @@ namespace DatastoreLibrary
                             case TypeCode.String:
                                 {
                                     int length = _properties[count].Length;
-                                    if (length < 0)
+                                    if (length == 0)
                                     {
                                         length = Convert.ToString(data).Length;
                                     }
@@ -1253,7 +1406,7 @@ namespace DatastoreLibrary
                             case TypeCode.String:
                                 {
                                     string text = Convert.ToString(data);
-                                    if (_properties[count].Length < 0)
+                                    if (_properties[count].Length == 0)
                                     {
                                         binaryWriter.Write(text);
                                     }
@@ -1314,9 +1467,16 @@ namespace DatastoreLibrary
                         BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
                         BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
 
-                        indexReader.BaseStream.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
-                        UInt16 key = indexReader.ReadUInt16();
-                        UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
+                        indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);                 // Get the pointer from the index file
+                        UInt16 index = indexReader.ReadUInt16();
+                        UInt16 pointer = indexReader.ReadUInt16();                                                      // Read the pointer from the index file
+
+                        // Need to read in the key or seek past it
+                        //if (_keyLength > 0)
+                        //{
+                        //    indexReader.ReadBytes(_keyLength);
+                        //}
+
                         binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
 
                         byte flag = binaryReader.ReadByte();
@@ -1324,6 +1484,11 @@ namespace DatastoreLibrary
                         {
                             switch (_properties[count].Type)
                             {
+                                case TypeCode.UInt16:
+                                    {
+                                        data[count] = binaryReader.ReadUInt16();
+                                        break;
+                                    }
                                 case TypeCode.Int16:
                                     {
                                         data[count] = binaryReader.ReadInt16();
@@ -1346,7 +1511,7 @@ namespace DatastoreLibrary
                                         // and effecting string manipulation
 
                                         string text = binaryReader.ReadString();
-                                        if (_properties[count].Length < 0)
+                                        if (_properties[count].Length == 0)
                                         {
                                             data[count] = text;
                                         }
@@ -1398,9 +1563,17 @@ namespace DatastoreLibrary
                     // if less then overwrite the space with the new record
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
-                    UInt16 key = indexReader.ReadUInt16();
-                    UInt16 pointer = indexReader.ReadUInt16();                                      // Reader the pointer from the index file
+                    indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 index = indexReader.ReadUInt16();
+                    UInt16 pointer = indexReader.ReadUInt16();                                  // Reader the pointer from the index file
+                    byte[] key = new byte[_keyLength];
+
+                    // Need to read in the key or seek past it
+                    if (_keyLength > 0)
+                    {
+                        key = indexReader.ReadBytes(_keyLength);
+                    }
+
                     UInt16 offset = indexReader.ReadUInt16();
                     indexReader.Close();
                     indexReader.Dispose();
@@ -1410,6 +1583,7 @@ namespace DatastoreLibrary
                     for (int count = 0; count < record.Length; count++)
                     {
                         object data = record[count];
+                        // Some duplication here with GetTypLength
                         switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
@@ -1448,9 +1622,22 @@ namespace DatastoreLibrary
                     }
 
                     BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
                     if (offset >= length)
                     {
-                        // If there is space write the data
+                        // If there is space update the index and write the data
+
+                        if (_keyLength > 0)
+                        {
+
+                            indexWriter.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);   // Get the index pointer
+                            indexWriter.Write(index); // check the index
+                            indexWriter.Write(pointer);
+                            if (_keyLength > 0)
+                            {
+                                indexWriter.Write(key, 0, _keyLength);
+                            }
+                        }
 
                         binaryWriter.Seek(0, SeekOrigin.Begin);     // Move to start of the file
                         binaryWriter.Seek(_data + pointer, SeekOrigin.Begin);
@@ -1480,7 +1667,7 @@ namespace DatastoreLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_properties[count].Length < 0)
+                                        if (_properties[count].Length == 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
@@ -1510,15 +1697,18 @@ namespace DatastoreLibrary
                         // There is no space so flag the record to indicate its spare
 
                         binaryWriter.Seek(_data + pointer, SeekOrigin.Begin);
-                        byte flag = 2;
+                        byte flag = 2;  // Spare
                         binaryWriter.Write(flag);
 
                         // Overwrite the index to use the new location at the end of the file
 
-                        BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
-                        indexWriter.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);   // Get the index pointer
-                        indexWriter.Write((UInt16)key); // check the key
+                        indexWriter.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);   // Get the index pointer
+                        indexWriter.Write((UInt16)index); // check the index
                         indexWriter.Write(_pointer);
+                        if (_keyLength > 0)
+                        {
+                            indexWriter.Write(key, 0, _keyLength);
+                        }
                         indexWriter.Close();
 
                         // Write the header
@@ -1561,7 +1751,7 @@ namespace DatastoreLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_properties[count].Length < 0)
+                                        if (_properties[count].Length == 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
@@ -1587,7 +1777,10 @@ namespace DatastoreLibrary
                         }
                     }
                     updated = true;
+                    indexWriter.Close();
+                    indexWriter.Dispose();
                     binaryWriter.Close();
+                    binaryWriter.Dispose();
                 }
                 else
                 {
@@ -1619,15 +1812,15 @@ namespace DatastoreLibrary
                     binaryWriter.Write(_size);                  // Write the new size
 
                     BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
-                    indexReader.BaseStream.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);                               // Get the pointer from the index file
-                    UInt16 key = indexReader.ReadUInt16();
+                    indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);                               // Get the pointer from the index file
+                    UInt16 index = indexReader.ReadUInt16();
                     UInt16 pointer = indexReader.ReadUInt16();
                     indexReader.Close();
 
                     // There is no space so flag the record to indicate its deleted
 
                     binaryWriter.Seek(_data + pointer, SeekOrigin.Begin);
-                    byte flag = 1;
+                    byte flag = 1;	// deleted
                     binaryWriter.Write(flag);
                     binaryWriter.Close();
 
@@ -1637,22 +1830,33 @@ namespace DatastoreLibrary
                     indexReader = new BinaryReader(stream);
                     BinaryWriter indexWriter = new BinaryWriter(stream);
 
-                    // copy the ponter and length data downwards 
+                    // copy the pointer and length data downwards 
 
                     for (int counter = row; counter < _size; counter++)
                     {
-                        indexReader.BaseStream.Seek(_begin + (counter + 1) * (_keyLength + 4), SeekOrigin.Begin); // Move to location of the index
-                        key = indexReader.ReadUInt16();
+                        indexReader.BaseStream.Seek(_begin + (counter + 1) * (_keyLength + 6), SeekOrigin.Begin); // Move to location of the index
+                        index = indexReader.ReadUInt16();
                         pointer = indexReader.ReadUInt16();                                           // Read the pointer from the index file
+                        if (_keyLength > 0)
+                        {
+                            indexReader.ReadBytes(_keyLength);
+                        }
                         UInt16 offset = indexReader.ReadUInt16();
-                        indexWriter.Seek(_begin + counter * (_keyLength + 4), SeekOrigin.Begin); // Move to location of the index
+                        indexWriter.Seek(_begin + counter * (_keyLength + 6), SeekOrigin.Begin); // Move to location of the index
+                        indexWriter.Write(index); // Think this should be key
                         indexWriter.Write(pointer);
-                        indexWriter.Write(pointer);
+                        //** need to write the key cheat at the moment
+                        if (_keyLength > 0)
+                        {
+                            indexWriter.Write(new byte[_keyLength]);
+                        }
                         indexWriter.Write(offset);
                     }
                     indexWriter.BaseStream.SetLength(_size * 4);    // Trim the file as Add uses append
                     indexWriter.Close();
+                    indexWriter.Dispose();
                     indexReader.Close();
+                    indexReader.Dispose();
                     stream.Close();
 
                     deleted = true;
@@ -1667,7 +1871,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Seek the row of a specific value 
+        /// Seek for a specific value returning the row 
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -1676,7 +1880,7 @@ namespace DatastoreLibrary
 
         internal int Seek(object value)
         {
-            int searched = -1;
+            int seek = -1;
             string indexPath = System.IO.Path.Combine(_path, _index);
             if (Convert.GetTypeCode(value) == _properties[_keyItem].Type)
             {
@@ -1686,56 +1890,184 @@ namespace DatastoreLibrary
                     BinaryReader indexReader = new BinaryReader(stream);
                     for (int row = 0; row < _size; row++)
                     {
-                        indexReader.BaseStream.Seek(_begin + row * (_keyLength + 4), SeekOrigin.Begin);
-                        switch (_properties[_keyItem].Type)
+                        indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);
+                        UInt16 index = indexReader.ReadUInt16();
+                        UInt16 pointer = indexReader.ReadUInt16();                                      // Read the pointer from the index file
+
+                        if (_keyLength == 0)    // If no primary key defined then seek on the index
                         {
-                            case TypeCode.Int16:
-                                {
-                                    Int16 data = indexReader.ReadInt16();
-                                    if (data == (Int16)value)
+                            if (index == Convert.ToUInt16(value))
+                            {
+                                seek = row;
+                            }
+                        }
+                        else
+                        {
+                            switch (_properties[_keyItem].Type)
+                            {
+                                case TypeCode.Int16:
                                     {
-                                        searched = row;
+                                        Int16 key = indexReader.ReadInt16();
+                                        if (key == (Int16)value)
+                                        {
+                                            seek = row;
+                                        }
                                         break;
                                     }
-                                    break;
-                                }
-                            case TypeCode.Int32:
-                                {
-                                    Int32 data = indexReader.ReadInt32();
-                                    if (data == (Int32)value)
+                                case TypeCode.Int32:
                                     {
-                                        searched = row;
+                                        Int32 key = indexReader.ReadInt32();
+                                        if (key == (Int32)value)
+                                        {
+                                            seek = row;
+                                        }
                                         break;
                                     }
-                                    break;
-                                }
-                            case TypeCode.Int64:
-                                {
-                                    Int64 data = indexReader.ReadInt64();
-                                    if (data == (Int32)value)
+                                case TypeCode.Int64:
                                     {
-                                        searched = row;
+                                        Int64 key = indexReader.ReadInt64();
+                                        if (key == (Int32)value)
+                                        {
+                                            seek = row;
+                                        }
                                         break;
                                     }
-                                    break;
-                                }
-                            case TypeCode.String:
-                                {
-                                    string data = indexReader.ReadString();
-                                    if (data == (string)value)
+                                case TypeCode.String:
                                     {
-                                        searched = row;
+                                        string key = indexReader.ReadString();
+                                        if (_keyLength > 0)
+                                        {
+                                            key = key.TrimEnd('\0');
+                                        }
+                                        if (key == (string)value)
+                                        {
+                                            seek = row;
+                                        }
                                         break;
                                     }
-                                    break;
-                                }
-                            default:
-                                {
-                                    throw new NotImplementedException();
-                                }
+                                default:
+                                    {
+                                        throw new NotImplementedException();
+                                    }
+                            }
                         }
 
+                        if (seek > -1)
+                        {
+                            break;
+                        }    
+
                     }
+                    indexReader.Close();
+                    indexReader.Dispose();
+                }
+            }
+            else
+            {
+                throw new InvalidDataException("Wrong format");
+            }
+            return (seek);
+        }
+
+        /// <summary>
+        /// Search for a specific value returning the row 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <exception cref="InvalidDataException"></exception>
+
+        internal int Search(object value)
+        {
+            int searched = -1;
+            string indexPath = System.IO.Path.Combine(_path, _index);
+            if (Convert.GetTypeCode(value) == _properties[_keyItem].Type)
+            {
+                lock (_lockObject)
+                {
+                    FileStream stream = new FileStream(indexPath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                    BinaryReader indexReader = new BinaryReader(stream);
+
+                    // Perform a binary search
+
+                    int diff = _size;
+                    int row = diff /2;
+                    int compare = 0;
+                    do
+                    {
+                        indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);
+
+                        UInt16 index = indexReader.ReadUInt16();
+                        UInt16 pointer = indexReader.ReadUInt16();                                           // Read the pointer from the index file
+
+                        if (_keyLength == 0)    // If no primary key defined then seek on the index
+                        {
+                            compare = index.CompareTo(Convert.ToUInt16(value));
+                        }
+                        else
+                        {
+                            switch (_properties[_keyItem].Type)
+
+                            {
+                                case TypeCode.UInt16:
+                                    {
+                                        UInt16 data = index;
+                                        compare = data.CompareTo(Convert.ToUInt16(value));
+                                        break;
+                                    }
+                                case TypeCode.Int16:
+                                    {
+                                        Int16 data = indexReader.ReadInt16();
+                                        compare = data.CompareTo((Int16)value);
+                                        break;
+                                    }
+                                case TypeCode.Int32:
+                                    {
+                                        Int32 data = indexReader.ReadInt32();
+                                        compare = data.CompareTo((Int32)value);
+                                        break;
+                                    }
+                                case TypeCode.Int64:
+                                    {
+                                        Int64 data = indexReader.ReadInt64();
+                                        compare = data.CompareTo((Int64)value);
+                                        break;
+                                    }
+                                case TypeCode.String:
+                                    {
+                                        string text = indexReader.ReadString();
+                                        if (_keyLength > 0)
+                                        {
+                                            text = text.TrimEnd('\0');
+                                        }
+                                        compare = String.Compare(text, (string)value);
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        throw new NotImplementedException();
+                                    }
+                            }
+                        }
+
+                        diff = diff / 2;
+                        if (compare == 0)
+                        {
+                            searched = row;
+                            break;
+                        }
+                        else if (compare < 0)
+                        {
+                            row = (int)(row + diff);
+                        }
+                        else if (compare > 0)
+                        {
+                            row = (int)(row - diff);
+                        }
+
+                    } while ((compare < 0) && (diff > 0));
+                    indexReader.Close();
+                    indexReader.Dispose();
                 }
             }
             else
@@ -1748,35 +2080,60 @@ namespace DatastoreLibrary
         #endregion
         #region Private
 
-        internal SByte GetTypeLength(TypeCode type)
+        private byte GetTypeLength(TypeCode type)
         {
-            SByte length = 0;
+            int length = 0;
             switch (type)
             {
+                case TypeCode.Boolean:
+                    {
+                        length = sizeof(bool);
+                        break;
+                    }
+                case TypeCode.Byte:
+                    {
+                        length = sizeof(byte);
+                        break;
+                    }
+                case TypeCode.Char:
+                    {
+                        length = sizeof(char);
+                        break;
+                    }
+                case TypeCode.Double:
+                    {
+                        length = sizeof(double);
+                        break;
+                    }
                 case TypeCode.Int16:
                     {
-                        length = 2;
+                        length = sizeof(short);
                         break;
                     }
                 case TypeCode.Int32:
                     {
-                        length = 4;
+                        length = sizeof(int);
                         break;
                     }
                 case TypeCode.Int64:
                     {
-                        length = 8;
+                        length = sizeof(long);
+                        break;
+                    }
+                case TypeCode.Single:
+                    {
+                        length = sizeof(float);
                         break;
                     }
                 default:
                     {
-                        throw new NotImplementedException();
+                        throw new ArgumentException("Unsupported type");
                     }
             }
-            return (length);
+            return (Convert.ToByte(length));
         }
 
-        internal Property GetField(int index)
+        private Property GetField(int index)
         {
             if (index < _size)
             {
@@ -1800,7 +2157,7 @@ namespace DatastoreLibrary
                             byte flag = binaryReader.ReadByte();                    // Read the status flag
                             byte order = binaryReader.ReadByte();                   // Read the Order
                             TypeCode typeCode = (TypeCode)binaryReader.ReadByte();  // Read the field Type
-                            sbyte length = binaryReader.ReadSByte();                // Read the field Length
+                            byte length = binaryReader.ReadByte();                  // Read the field Length
                             bool primary = false;                                   // Read if the primary key
                             if (binaryReader.ReadByte() == 1)
                             {

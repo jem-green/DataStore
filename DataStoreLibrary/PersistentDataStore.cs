@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime;
+using System.Xml.Linq;
 
 namespace DatastoreLibrary
 {
@@ -10,23 +12,26 @@ namespace DatastoreLibrary
 
         private string _path = "";
         private string _name = "";
+        private string _index = "";
         private DataHandler _handler;
         private bool _open = false;
 
         public struct FieldType
         {
             string _name;
-            sbyte _length;
-            string _type;
+            TypeCode _typeCode;
+            byte _length;
+            bool _primary;
 
-            public FieldType(string name, string type, sbyte length)
+            public FieldType(string name, TypeCode type, byte length, bool primary)
             {
                 _name = name;
-                _type = type;
+                _typeCode = type;
                 _length = length;
+                _primary = primary;
             }
 
-            public sbyte Length
+            public byte Length
             {
                 set
                 {
@@ -50,21 +55,33 @@ namespace DatastoreLibrary
                 }
             }
 
-            public string Type
+            public TypeCode Type
             {
                 set
                 {
-                    _type = value;
+                    _typeCode = value;
                 }
                 get
                 {
-                    return (_type);
+                    return (_typeCode);
+                }
+            }
+
+            public bool Primary
+            {
+                set
+                {
+                    _primary = value;
+                }
+                get
+                {
+                    return (_primary);
                 }
             }
 
             public override string ToString()
             {
-                string s = _name + "," + _type;
+                string s = _name + "," + _typeCode;
                 if (_length > 0)
                 {
                     s = s + "[" + _length + "]";
@@ -99,6 +116,7 @@ namespace DatastoreLibrary
             if ((filename != null) && (filename.Length > 0))
             {
                 _name = filename;
+                _index = filename;
             }
         }
 
@@ -155,14 +173,23 @@ namespace DatastoreLibrary
 
         #endregion
         #region Methods
+        #region Index
+
+        public void Index()
+        {
+            // Need to delete the index and 
+            if (_handler != null)
+            {
+                _handler.Index();
+            }
+        }
+
+        #endregion
+
         #region General
         public void New()
         {
-            if (_open == false)
-            {
-                _handler = new DataHandler(_path, _name);
-                _open = _handler.New();
-            }
+            New(_path, _name);
         }
 
         public void New(string path, string name)
@@ -176,11 +203,7 @@ namespace DatastoreLibrary
 
         public void Open()
         {
-            if (_open == false)
-            {
-                _handler = new DataHandler(_path, _name);
-                _open = _handler.Open();
-            }
+           Open(_path, _name);
         }
 
         public void Open(string path, string name)
@@ -213,25 +236,25 @@ namespace DatastoreLibrary
 
         public void Add(FieldType fieldType)
         {
-            Add(fieldType.Name, fieldType.Type, fieldType.Length);
+            Add(fieldType.Name, fieldType.Type, fieldType.Length, fieldType.Primary);
         }
 
-        public void Add(string name, string type, sbyte length)
+        public void Add(string name, string type, byte length)
         {
-            Add(name, TypeLookup(type), length);
+            Add(name, TypeLookup(type), length, false);
         }
 
         public void Add(string name, string type)
         {
-            Add(name, TypeLookup(type), -1);
+            Add(name, TypeLookup(type), 0, false);
         }
 
         public void Add(string name, TypeCode typeCode)
         {
-            Add(name, typeCode, -1);
+            Add(name, typeCode, 0, false);
         }
 
-        public void Add(string name, TypeCode typeCode, sbyte length)
+        public void Add(string name, TypeCode typeCode, byte length, bool primary)
         {
             if (_handler != null)
             {
@@ -242,6 +265,7 @@ namespace DatastoreLibrary
                 {
                     field.Length = length;
                 }
+                field.Primary = primary;
                 _handler.Add(field);
             }
         }
@@ -258,7 +282,6 @@ namespace DatastoreLibrary
         {
             if (_handler != null)
             {
-
                 for (int i = _handler.Items; i >= 0; i--)
                 {
                     _handler.RemoveAt(i);
@@ -271,22 +294,22 @@ namespace DatastoreLibrary
             Set(item, fieldType.Name, fieldType.Type, fieldType.Length);
         }
 
-        public void Set(int item, string name, string type, sbyte length)
+        public void Set(int item, string name, string type, byte length)
         {
             Set(item, name, TypeLookup(type), length);
         }
 
         public void Set(int item, string name, string type)
         {
-            Set(item, name, TypeLookup(type), -1);
+            Set(item, name, TypeLookup(type), 0);
         }
 
         public void Set(int item, string name, TypeCode typeCode)
         {
-            Set(item, name, typeCode, -1);
+            Set(item, name, typeCode, 0);
         }
 
-        public void Set(int item, string name, TypeCode typeCode, sbyte length)
+        public void Set(int item, string name, TypeCode typeCode, byte length)
         {
             if (_handler != null)
             {
@@ -332,7 +355,7 @@ namespace DatastoreLibrary
             {
                 DataHandler.Property property = _handler.Get(item);
                 field.Name = property.Name;
-                field.Type = property.Type.ToString();
+                field.Type = property.Type;
                 field.Length = property.Length;
             }
             return (field);
@@ -349,7 +372,7 @@ namespace DatastoreLibrary
                     DataHandler.Property property = _handler.Get(i);
                     FieldType field = new FieldType();
                     field.Name = property.Name;
-                    field.Type = property.Type.ToString();
+                    field.Type = property.Type;
                     field.Length = property.Length;
                     fields.Add(field);
                 }
@@ -483,7 +506,6 @@ namespace DatastoreLibrary
                     List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
                     for (int j = 0; j < data.Length; j++)
                     {
-
                         record.Add(new KeyValuePair<string, object>(_handler.Get(j).Name, data[j]));
                     }
                     records.Add(record);
@@ -503,11 +525,19 @@ namespace DatastoreLibrary
             if (_handler != null)
             {
                 object[] data;
-                data = _handler.Read(row);
-                for (int i = 0; i < data.Length; i++)
+                try
                 {
-                    record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
+                    data = _handler.Read(row);
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        record.Add(new KeyValuePair<string, object>(_handler.Get(i).Name, data[i]));
+                    }
                 }
+                catch
+                {
+                    data = null;
+                }
+
             }
             return (record);
         }
@@ -613,6 +643,7 @@ namespace DatastoreLibrary
                         dataType = TypeCode.Int32;
                         break;
                     }
+                case "LONG":
                 case "INT64":
                     {
                         dataType = TypeCode.Int64;
@@ -630,6 +661,16 @@ namespace DatastoreLibrary
                     }
             }
             return (dataType);
+        }
+
+        public int Search(object record)
+        {
+            return (_handler.Search(record));
+        }
+
+        public int Seek(object record)
+        {
+            return (_handler.Seek(record));
         }
 
         #endregion

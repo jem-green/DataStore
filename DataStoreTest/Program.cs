@@ -18,7 +18,7 @@ namespace DatastoreTests
 
         static void Main(string[] args)
         {
-            Function f = new Function();
+            Functions f = new Functions();
             f.Run();
 
             Performance p = new Performance();

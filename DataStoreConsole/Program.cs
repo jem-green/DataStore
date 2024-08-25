@@ -73,7 +73,7 @@ namespace DatastoreConsole
         static Parameter<string> _filename;
         static Parameter<string> _filePath;
         static Parameter<int> _item;
-        static Parameter<sbyte> _length;
+        static Parameter<byte> _length;
         static Parameter<bool> _reset;
         static Parameter<int> _row;
         static Parameter<TypeCode> _type;
@@ -146,7 +146,7 @@ namespace DatastoreConsole
             _filename = new Parameter<string>("");
             _filePath = new Parameter<string>("");
             _item = new Parameter<int>(0);
-            _length = new Parameter<sbyte>(0);
+            _length = new Parameter<byte>(0);
             _reset = new Parameter<bool>(false);
             _row = new Parameter<int>(-1);
             _type = new Parameter<TypeCode>(TypeCode.Empty);
@@ -616,8 +616,8 @@ namespace DatastoreConsole
                                     string lengthName = args[++element];
                                     lengthName = lengthName.TrimStart('"');
                                     lengthName = lengthName.TrimEnd('"');
-                                    _length.Value = Convert.ToSByte(lengthName);
-                                    _length.Source = Parameter<sbyte>.SourceType.Command;
+                                    _length.Value = Convert.ToByte(lengthName);
+                                    _length.Source = Parameter<byte>.SourceType.Command;
                                     TraceInternal.TraceVerbose("Use command value Length=" + _length);
                                     break;
                                 }
@@ -795,7 +795,7 @@ namespace DatastoreConsole
                             {
                                 output = output + String.Format("--field \"{0}\" --type \"{1}\" --length {2}", _field.Value, _type.Value, _length.Value);
                                 Console.WriteLine(output);
-                                _dataStore.Add(_field.Value, _type.Value, _length.Value);
+                                _dataStore.Add(_field.Value, _type.Value, _length.Value,false);
                             }
                             break;
                         }
@@ -856,7 +856,7 @@ namespace DatastoreConsole
                                     builder.Append("\"" + fields[j].Name + "\"");
                                     builder.Append('[');
                                     builder.Append(fields[j].Type);
-                                    if (fields[j].Type == "String")
+                                    if (fields[j].Type == TypeCode.String)
                                     {
                                         builder.Append('=');
                                         builder.Append(fields[j].Length);
@@ -879,7 +879,7 @@ namespace DatastoreConsole
                                 builder.Append("\"" + field.Name + "\"");
                                 builder.Append('[');
                                 builder.Append(field.Type);
-                                if (field.Type == "String")
+                                if (field.Type == TypeCode.String)
                                 {
                                     builder.Append('=');
                                     builder.Append(field.Length);
