@@ -694,7 +694,7 @@ namespace DatastoreLibrary
                             {
                                 binaryWriter.Write((byte)1);
                                 _keyItem = (byte)_items;                    // write the key index
-                                _keyLength = GetTypeLength(typeCode);       // write the key length based it type
+                                _keyLength = GetTypeLength(typeCode, field.Length);       // write the key length based it type
                             }
                             else
                             {
@@ -1635,7 +1635,50 @@ namespace DatastoreLibrary
                             indexWriter.Write(pointer);
                             if (_keyLength > 0)
                             {
-                                indexWriter.Write(key, 0, _keyLength);
+                                object data = record[_keyItem];
+                                switch (_properties[_keyItem].Type)
+                                {
+                                    case TypeCode.Int16:
+                                        {
+                                            indexWriter.Write((Int16)data);
+                                            break;
+                                        }
+                                    case TypeCode.Int32:
+                                        {
+                                            indexWriter.Write((Int32)data);
+                                            break;
+                                        }
+                                    case TypeCode.Int64:
+                                        {
+                                            indexWriter.Write((Int64)data);
+                                            break;
+                                        }
+                                    case TypeCode.String:
+                                        {
+                                            string text = Convert.ToString(data);
+                                            if (_properties[_keyItem].Length == 0)
+                                            {
+                                                indexWriter.Write(text);
+                                            }
+                                            else
+                                            {
+                                                if (text.Length > _properties[_keyItem].Length)
+                                                {
+                                                    text = text.Substring(0, _properties[_keyItem].Length);
+                                                }
+                                                else
+                                                {
+                                                    text = text.PadRight(_properties[_keyItem].Length, '\0');
+                                                }
+                                                indexWriter.Write(text);
+                                            }
+                                            break;
+                                        }
+                                    default:
+                                        {
+                                            throw new NotImplementedException();
+                                        }
+                                }
                             }
                         }
 
@@ -1707,7 +1750,50 @@ namespace DatastoreLibrary
                         indexWriter.Write(_pointer);
                         if (_keyLength > 0)
                         {
-                            indexWriter.Write(key, 0, _keyLength);
+                            object data = record[_keyItem];
+                            switch (_properties[_keyItem].Type)
+                            {
+                                case TypeCode.Int16:
+                                    {
+                                        indexWriter.Write((Int16)data);
+                                        break;
+                                    }
+                                case TypeCode.Int32:
+                                    {
+                                        indexWriter.Write((Int32)data);
+                                        break;
+                                    }
+                                case TypeCode.Int64:
+                                    {
+                                        indexWriter.Write((Int64)data);
+                                        break;
+                                    }
+                                case TypeCode.String:
+                                    {
+                                        string text = Convert.ToString(data);
+                                        if (_properties[_keyItem].Length == 0)
+                                        {
+                                            indexWriter.Write(text);
+                                        }
+                                        else
+                                        {
+                                            if (text.Length > _properties[_keyItem].Length)
+                                            {
+                                                text = text.Substring(0, _properties[_keyItem].Length);
+                                            }
+                                            else
+                                            {
+                                                text = text.PadRight(_properties[_keyItem].Length, '\0');
+                                            }
+                                            indexWriter.Write(text);
+                                        }
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        throw new NotImplementedException();
+                                    }
+                            }
                         }
                         indexWriter.Close();
 
@@ -2080,9 +2166,8 @@ namespace DatastoreLibrary
         #endregion
         #region Private
 
-        private byte GetTypeLength(TypeCode type)
+        private byte GetTypeLength(TypeCode type, int length)
         {
-            int length = 0;
             switch (type)
             {
                 case TypeCode.Boolean:
@@ -2123,6 +2208,11 @@ namespace DatastoreLibrary
                 case TypeCode.Single:
                     {
                         length = sizeof(float);
+                        break;
+                    }
+                case TypeCode.String:
+                    {
+                        length = LEB128.Size(length) + length;
                         break;
                     }
                 default:

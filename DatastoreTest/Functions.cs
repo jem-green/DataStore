@@ -38,7 +38,8 @@ namespace DatastoreTests
                 _datastore.Reset();
             }
             _datastore.Add("id", "Int32", 0);
-            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10,false));
+            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10, true));
+            _datastore.Index();
 
             // Create data
             // 0, id=0, name="hello"
@@ -51,11 +52,11 @@ namespace DatastoreTests
 
             // Create more data
             // 0, id=0, name="hello"
-            // 1, id=1, name="laura"
+            // 1, id=1, name="Laura"
 
             create = new List<KeyValuePair<string, object>>();
             create.Add(new KeyValuePair<string, object>("id", 1));
-            create.Add(new KeyValuePair<string, object>("name", "laura"));
+            create.Add(new KeyValuePair<string, object>("name", "Laura"));
             _datastore.Create(create);
             PrintAll(_datastore.Read());
 
@@ -74,7 +75,6 @@ namespace DatastoreTests
             // 1, id=101, name="Jeremy"
             // 2, id=1, name="Laura"
 
-
             List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
             insert.Add(new KeyValuePair<string, object>("id", 2));
             insert.Add(new KeyValuePair<string, object>("name", "Ash"));
@@ -84,9 +84,10 @@ namespace DatastoreTests
             // Seek data
             // 1, id=1, name="Laura"
 
-            int row = _datastore.Seek(1);
+            int row = _datastore.Seek("Jeremy");
             Print(_datastore.Read(row));
 
+            Console.WriteLine("");
 
         }
         #endregion
