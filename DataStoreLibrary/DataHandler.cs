@@ -101,7 +101,7 @@ namespace DatastoreLibrary
         bytes - string
         ...
         
-        data
+        Data
         ----
         
         0 - unsigned byte - flag 0 = normal, 1 = deleted, 2 = spare
@@ -196,6 +196,13 @@ namespace DatastoreLibrary
         private readonly UInt16 _begin = 2;     // Pointer to the beginning of the index area
         private byte _keyLength = 0;            // key length not set until a primary key is defined
         private byte _keyItem = 0;              // key item used to lookup the property
+
+        private enum RecordType : byte
+        {
+            normal = 0,
+            deleted = 1,
+            spare = 2
+        }
 
         /// <summary>
         /// Field properties
@@ -759,7 +766,7 @@ namespace DatastoreLibrary
                     flag = binaryReader.ReadByte();                             // Read the status flag
                     byte order = binaryReader.ReadByte();                       // Read the order
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();      // Read the field Type
-                    byte length = binaryReader.ReadByte();                    // Read the field Length
+                    byte length = binaryReader.ReadByte();                      // Read the field Length
                     bool primary = false;                                       // Read if the primary key
                     if (binaryReader.ReadByte() == 1)
                     {

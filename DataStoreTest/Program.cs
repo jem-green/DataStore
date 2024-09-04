@@ -18,11 +18,15 @@ namespace DatastoreTests
 
         static void Main(string[] args)
         {
-            Functions f = new Functions();
-            f.Run();
+            //Functions f = new Functions();
+            //f.Run();
 
-            Performance p = new Performance();
-            p.Run();
+            //Performance p = new Performance();
+            //p.Run();
+
+            Internal i = new Internal();
+            i.Run();
+
 
         }
         #endregion

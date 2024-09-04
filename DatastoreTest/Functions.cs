@@ -124,6 +124,7 @@ namespace DatastoreTests
         {
             for (int i = 0; i < records.Count; i++)
             {
+                Console.Write(i + ", ");
                 List<KeyValuePair<string, object>> record = records[i];
                 for (int j = 0; j < record.Count; j++)
                 {

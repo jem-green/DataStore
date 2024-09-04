@@ -1,7 +1,6 @@
 ﻿using DatastoreLibrary;
 
-namespace DatastoreTests
-
+namespace DatastoreTest
 {
     internal class Internal
     {
@@ -10,7 +9,7 @@ namespace DatastoreTests
         static string _name = String.Empty;
         static string _path = String.Empty;
         static bool _reset = false;
-        //private DataHandler _datahandler;
+        static DataHandler _datahandler;
 
         #endregion
         #region Constructors
@@ -23,6 +22,7 @@ namespace DatastoreTests
         }
 
         #endregion
+        #region Methods
 
         internal void Run()
         {
@@ -32,113 +32,110 @@ namespace DatastoreTests
                 File.Delete(_name + ".dbf");
                 File.Delete(_name + ".idx");
             }
-            //_datahandler = new PersistentDatastore(_path, _name);
 
-            /*
-
+            _datahandler = new DataHandler(_path, _name);
             _datahandler.New();
             _datahandler.Open();
             if (_reset == true)
             {
                 _datahandler.Reset();
             }
-            _datahandler.Add("id", "Int32", 0);
-            _datahandler.Add(new PersistentDatastore.FieldType("name", "string", 10));
+
+            // Create properties
+
+            _datahandler.Add(new DataHandler.Property("id", _datahandler, 0, TypeCode.Int32, 0, false));
+            _datahandler.Add(new DataHandler.Property("name", 0, 1, TypeCode.String, 10, false));
 
             // Create data
             // 0, id=0, name="hello"
 
-            List<KeyValuePair<string, object>> create = new List<KeyValuePair<string, object>>();
-            create.Add(new KeyValuePair<string, object>("id", 0));
-            create.Add(new KeyValuePair<string, object>("name", "hello"));
+            object[] create = new object[] { 0, "hello" };
             _datahandler.Create(create);
-            PrintAll(_datahandler.Read());
+            PrintAll();
 
             // Create more data
             // 0, id=0, name="hello"
-            // 1, id=1, name="laura"
+            // 1, id=1, name="Laura"
 
-            create = new List<KeyValuePair<string, object>>();
-            create.Add(new KeyValuePair<string, object>("id", 1));
-            create.Add(new KeyValuePair<string, object>("name", "laura"));
+            create = new object[] { 1, "Laura" };
             _datahandler.Create(create);
-            PrintAll(_datahandler.Read());
+            PrintAll();
 
             // Update data
             // 0, id=101, name="Jeremy"
-            // 1, id=1, name="laura"
+            // 1, id=1, name="Laura"
 
-            List<KeyValuePair<string, object>> update = new List<KeyValuePair<string, object>>();
-            update.Add(new KeyValuePair<string, object>("id", 101));
-            update.Add(new KeyValuePair<string, object>("name", "Jeremy"));
+            object[] update = new object[] { 101, "Jeremy" };
             _datahandler.Update(update, 0);
-            PrintAll(_datahandler.Read());
+            PrintAll();
 
             // insert data
-            // 0, id=2, name="ash"
-            // 1, id=1, name="laura"
+            // 0, id=2, name="Ash"
+            // 1, id=101, name="Jeremy"
+            // 2, id=1, name="Laura"
 
-            List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
-            insert.Add(new KeyValuePair<string, object>("id", 2));
-            insert.Add(new KeyValuePair<string, object>("name", "Ash"));
+            object[] insert = new object[] { 2, "Ash" };
             _datahandler.Insert(insert, 0);
-            PrintAll(_datahandler.Read());
+            PrintAll();
         }
 
         #endregion
         #region Methods
-        private void Print(List<KeyValuePair<string, object>> record)
+        private void Print(int row)
         {
-            for (int j = 0; j < record.Count; j++)
+            object[] record = _datahandler.Read(row);
+            for (int j = 0; j < record.Length; j++)
             {
-                Console.Write("\"" + record[j].Key + "\"");
+                Console.Write("\"" + _datahandler.Get(j).Name + "\"");
                 Console.Write("=");
-                TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
+                TypeCode typeCode = _datahandler.Get(j).Type;
                 switch (typeCode)
                 {
                     case TypeCode.String:
                         {
-                            Console.Write("\"" + record[j].Value + "\"");
+                            Console.Write("\"" + Convert.ToString(record[j]) + "\"");
                             break;
                         }
                     default:
                         {
-                            Console.Write(record[j].Value);
+                            Console.Write(record[j]);
                             break;
                         }
                 }
-                if (j < record.Count - 1)
+                if (j < record.Length - 1)
                 {
-                    Console.Write(",");
+                    Console.Write(", ");
                 }
             }
             Console.Write("\r\n");
         }
 
-        private void PrintAll(List<List<KeyValuePair<string, object>>> records)
+        private void PrintAll()
         {
-            for (int i = 0; i < records.Count; i++)
+
+            for (int i = 0; i < _datahandler.Size; i++)
             {
-                List<KeyValuePair<string, object>> record = records[i];
-                for (int j = 0; j < record.Count; j++)
+                Console.Write(i + ", ");
+                object[] record = _datahandler.Read(i);
+                for (int j = 0; j < record.Length; j++)
                 {
-                    Console.Write("\"" + record[j].Key + "\"");
+                    Console.Write("\"" + _datahandler.Get(j).Name + "\"");
                     Console.Write("=");
-                    TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
+                    TypeCode typeCode = _datahandler.Get(j).Type;
                     switch (typeCode)
                     {
                         case TypeCode.String:
                             {
-                                Console.Write("\"" + record[j].Value + "\"");
+                                Console.Write("\"" + Convert.ToString(record[j]) + "\"");
                                 break;
                             }
                         default:
                             {
-                                Console.Write(record[j].Value);
+                                Console.Write(record[j]);
                                 break;
                             }
                     }
-                    if (j < record.Count - 1)
+                    if (j < record.Length - 1)
                     {
                         Console.Write(",");
                     }
@@ -148,7 +145,6 @@ namespace DatastoreTests
             Console.Write("\r\n");
         }
         #endregion
-            */
-        }
+
     }
 }
