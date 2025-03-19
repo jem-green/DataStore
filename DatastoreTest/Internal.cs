@@ -43,7 +43,7 @@ namespace DatastoreTest
 
             // Create properties
 
-            _datahandler.Add(new DataHandler.Property("id", _datahandler, 0, TypeCode.Int32, 0, false));
+            _datahandler.Add(new DataHandler.Property("id", 0, 0, TypeCode.Int32, 0, false));
             _datahandler.Add(new DataHandler.Property("name", 0, 1, TypeCode.String, 10, false));
 
             // Create data

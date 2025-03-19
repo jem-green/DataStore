@@ -254,6 +254,11 @@ namespace DatastoreLibrary
             Add(name, typeCode, 0, false);
         }
 
+        public void Add(string name, TypeCode typeCode, byte length)
+        {
+            Add(name, typeCode,length, false);
+        }
+
         public void Add(string name, TypeCode typeCode, byte length, bool primary)
         {
             if (_handler != null)

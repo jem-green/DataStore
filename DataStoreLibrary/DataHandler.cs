@@ -2045,7 +2045,7 @@ namespace DatastoreLibrary
                             }
                         }
 
-                        if (seek > -1)
+                        if (seek > -1)  // Exit the loop if found
                         {
                             break;
                         }    

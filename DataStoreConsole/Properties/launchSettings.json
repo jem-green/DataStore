@@ -5,8 +5,7 @@
       "distributionName": ""
     },
     "Datastore": {
-      "commandName": "Project",
-      "commandLineArgs": "--filename heartbeat.dbf --filepath \"C:\\ProgramData\\cardiac\\cardiac.db\" READ --row 1"
+      "commandName": "Project"
     }
   }
 }
