@@ -41,6 +41,14 @@ namespace DatastoreLibrary
 
         Header
         ------
+
+                  1
+        012345.....
+        ~+¬+¬+
+         | | |           
+         | | +- data (2)
+         | +- pointer (2) 
+         +- size (2)
         
         00 - unsigned int16 - number of records _size
         00 - unsigned int16 - pointer to current record _pointer
@@ -54,6 +62,18 @@ namespace DatastoreLibrary
           
         Field Properties
         ----------------
+
+                  1
+        012345.....
+        +++++¬-+-~
+        |||||  |
+        |||||  +- name (LEB128
+        ||||+- key (1)
+        ||||+- length (1)
+        |||+- type (2)
+        ||+- order (1)
+        |+- flag (1) 
+        +- offset (1)
 
         The offset is needed if the field is shortened.
 
@@ -104,7 +124,7 @@ namespace DatastoreLibrary
         Data
         ----
         
-        0 - unsigned byte - flag 0 = normal, 1 = deleted, 2 = spare
+        0 - unsigned byte - Flag 0 = normal, 1 = deleted, 2 = spare
         
         1 - string
         00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format

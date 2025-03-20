@@ -24,7 +24,10 @@ namespace DatastoreTests
             //Performance p = new Performance();
             //p.Run();
 
-            Internal i = new Internal();
+            //Internal i = new Internal();
+            //i.Run();
+
+            DatastoreTest.Index i = new DatastoreTest.Index();
             i.Run();
 
 
