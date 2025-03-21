@@ -78,7 +78,7 @@ namespace DatastoreTests
             List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
             insert.Add(new KeyValuePair<string, object>("id", 2));
             insert.Add(new KeyValuePair<string, object>("name", "Ash"));
-            _datastore.Insert(insert, 0);
+            _datastore.InsertAt(insert, 0);
             PrintAll(_datastore.Read());
 
             // Seek data

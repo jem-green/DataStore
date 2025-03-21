@@ -4,6 +4,7 @@ using System.IO;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace DatastoreLibrary
 {
@@ -219,9 +220,16 @@ namespace DatastoreLibrary
 
         private enum RecordType : byte
         {
-            normal = 0,
-            deleted = 1,
-            spare = 2
+            Normal = 0,
+            Deleted = 1,
+            Spare = 2
+        }
+
+        internal enum SearchType : byte
+        {
+            Equal = 0,
+            Greater = 1,
+            Less = 2
         }
 
         /// <summary>
@@ -626,10 +634,13 @@ namespace DatastoreLibrary
             return (close);
         }
 
+        /// <summary>
+        /// Create a new index file
+        /// </summary>
+        /// <returns></returns>
         internal bool Index()
         {
             bool index = false;
-            string filenamePath = System.IO.Path.Combine(_path, _name);
             string indexPath = System.IO.Path.Combine(_path, _index);
 
             if (File.Exists(indexPath + ".idx") == true)
@@ -637,7 +648,7 @@ namespace DatastoreLibrary
                 if (_keyLength > 0) // The primary key has been defined
                 {
                     // Need to delete index
-                    File.Delete(filenamePath + ".idx");
+                    File.Delete(indexPath + ".idx");
                     BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
                     indexWriter.Write(_keyLength);              // Write the key length
                     indexWriter.Write(_keyItem);                // Write the field property item reference
@@ -646,7 +657,7 @@ namespace DatastoreLibrary
                     index = true;
                 }
             }
-            return(index);
+            return (index);
         }
 
         #endregion
@@ -1057,12 +1068,12 @@ namespace DatastoreLibrary
                 // append the new pointer the new index file
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Append));
-                
+
                 // Check the type of index, if not set default to row
                 // difficulty here is if we want to have an ordered index then
                 // need to do a binary search and find where to insert and then copy all
                 // the data downwards.
-                
+
                 indexWriter.Write((UInt16)_size);   // Write the default index assume row
                 indexWriter.Write(_pointer);        // Write the pointer
 
@@ -1268,16 +1279,16 @@ namespace DatastoreLibrary
                         indexReader.BaseStream.Seek(_begin + (counter - 1) * (_keyLength + 6), SeekOrigin.Begin);         // Move to location of the index
                         UInt16 index = indexReader.ReadUInt16();                                      // Read the key from the index file
                         UInt16 pointer = indexReader.ReadUInt16();                                  // Read the pointer from the index file
-                        
+
                         // Get the key
-                        
+
                         byte[] key = indexReader.ReadBytes(_keyLength);
-                        
+
                         UInt16 length = indexReader.ReadUInt16();                                   // Read the length from the index file
                         indexWriter.Seek(_begin + counter * (_keyLength + 6), SeekOrigin.Begin);     // Move to location of the index
                         indexWriter.Write(index);
                         indexWriter.Write(pointer);
-                        indexWriter.Write(key,0,_keyLength);
+                        indexWriter.Write(key, 0, _keyLength);
                         indexWriter.Write(length);
                     }
                     indexWriter.Close();
@@ -1544,7 +1555,7 @@ namespace DatastoreLibrary
                                         }
                                         else
                                         {
-                                            data[count] =text.TrimEnd('\0');
+                                            data[count] = text.TrimEnd('\0');
                                         }
                                         break;
                                     }
@@ -1984,18 +1995,18 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Seek for a specific value returning the row 
+        /// Using a linear search, find a specific value returning the row 
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         /// <exception cref="InvalidDataException"></exception>
 
-        internal int Seek(object value)
+        internal int Seek(object value, SearchType search)
         {
             int seek = -1;
             string indexPath = System.IO.Path.Combine(_path, _index);
-            if (Convert.GetTypeCode(value) == _properties[_keyItem].Type)
+            if ((_keyLength == 0) ||(Convert.GetTypeCode(value) == _properties[_keyItem].Type))
             {
                 lock (_lockObject)
                 {
@@ -2021,16 +2032,34 @@ namespace DatastoreLibrary
                                 case TypeCode.Int16:
                                     {
                                         Int16 key = indexReader.ReadInt16();
-                                        if (key == (Int16)value)
+
+                                        if ((key == (Int16)value) && (search == SearchType.Equal))
                                         {
                                             seek = row;
                                         }
+                                        else if ((key > (Int16)value) && (search == SearchType.Less))
+                                        {
+                                            seek = row;
+                                        }
+                                        else if ((key < (Int16)value) && (search == SearchType.Greater))
+                                        {
+                                            seek = row;
+                                        }
+
                                         break;
                                     }
                                 case TypeCode.Int32:
                                     {
                                         Int32 key = indexReader.ReadInt32();
-                                        if (key == (Int32)value)
+                                        if ((key == (Int32)value) && (search == SearchType.Equal))
+                                        {
+                                            seek = row;
+                                        }
+                                        else if ((key < (Int32)value) && (search == SearchType.Less))
+                                        {
+                                            seek = row;
+                                        }
+                                        else if ((key > (Int32)value) && (search == SearchType.Greater))
                                         {
                                             seek = row;
                                         }
@@ -2052,7 +2081,16 @@ namespace DatastoreLibrary
                                         {
                                             key = key.TrimEnd('\0');
                                         }
-                                        if (key == (string)value)
+
+                                        if (String.Compare(key, (string)value) == 0 && (search == SearchType.Equal))
+                                        {
+                                            seek = row;
+                                        }
+                                        else if (String.Compare(key, (string)value) < 0 && (search == SearchType.Less))
+                                        {
+                                            seek = row;
+                                        }
+                                        else if (String.Compare(key, (string)value) > 0 && (search == SearchType.Greater))
                                         {
                                             seek = row;
                                         }
@@ -2068,7 +2106,7 @@ namespace DatastoreLibrary
                         if (seek > -1)  // Exit the loop if found
                         {
                             break;
-                        }    
+                        }
 
                     }
                     indexReader.Close();
@@ -2077,13 +2115,13 @@ namespace DatastoreLibrary
             }
             else
             {
-                throw new InvalidDataException("Wrong format");
+                throw new InvalidDataException("Wrong format for primary key");
             }
             return (seek);
         }
 
         /// <summary>
-        /// Search for a specific value returning the row 
+        /// Using a binary search, find a specific value returning the row 
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -2104,7 +2142,7 @@ namespace DatastoreLibrary
                     // Perform a binary search
 
                     int diff = _size;
-                    int row = diff /2;
+                    int row = diff / 2;
                     int compare = 0;
                     do
                     {
@@ -2330,6 +2368,8 @@ namespace DatastoreLibrary
             } while (value != 0);
             return (size);
         }
+
+        #endregion
+
     }
-    #endregion
 }

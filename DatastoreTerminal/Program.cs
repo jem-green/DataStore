@@ -700,7 +700,7 @@ namespace DatastoreTerminal
                                     }
                                     if ((record.Count > 0) && (_row.Value >= 0))
                                     {
-                                        _dataStore.Insert(record, _row.Value);
+                                        _dataStore.InsertAt(record, _row.Value);
                                     }
                                     Console.WriteLine(output);
                                 }

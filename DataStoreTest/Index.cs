@@ -14,7 +14,7 @@ namespace DatastoreTest
         static string _name = String.Empty;
         static string _path = String.Empty;
         static bool _reset = false;
-        static DataHandler _datahandler;
+        private static PersistentDatastore? _datastore;
 
         #endregion
         #region Constructors
@@ -38,97 +38,132 @@ namespace DatastoreTest
                 File.Delete(_name + ".idx");
             }
 
-            _datahandler = new DataHandler(_path, _name);
-            _datahandler.New();
-            _datahandler.Open();
+            // Test the PersistentDatastore public methods
+
+            _datastore = new PersistentDatastore(_path, _name);
+
+            _datastore.New();
+            _datastore.Open();
             if (_reset == true)
             {
-                _datahandler.Reset();
+                _datastore.Reset();
             }
 
             // Create properties
             // Set the Id to be the primary key
 
-            _datahandler.Add(new DataHandler.Property("id", 0, 0, TypeCode.Int32, 0, false));
-            _datahandler.Add(new DataHandler.Property("name", 0, 1, TypeCode.String, 10, true));
+            _datastore.Add(new PersistentDatastore.FieldType("id", TypeCode.Int32, 4, false));
+            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10, true));
 
-            // Create data
-            // 0, id=0, name="hello"
+            // Read in some name data to test the Seek method
 
-            object[] create = new object[] { 1, "hello" };
-            _datahandler.Create(create);
+            TextReader tr = new StreamReader("boys.txt");
+            int row = 199;
+            do
+            {
+                string line = tr.ReadLine();
+                if (line == null)
+                {
+                    break;
+                }
+                List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
+                insert.Add(new KeyValuePair<string, object>("id", row));
+                insert.Add(new KeyValuePair<string, object>("name", line));
+                _datastore.Insert(insert);
+                //_datastore.Create(insert);
+                row--;
+            } while (true);
+            tr.Close();
+            tr.Dispose();
 
-            // Create more data
-            // 0, id=0, name="hello"
-            // 1, id=1, name="Laura"
-
-            create = new object[] { 0, "Laura" };
-            _datahandler.Create(create);
+            tr = new StreamReader("girls.txt");
+            do
+            {
+                string line = tr.ReadLine();
+                if (line == null)
+                {
+                    break;
+                }
+                List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
+                insert.Add(new KeyValuePair<string, object>("id", row));
+                insert.Add(new KeyValuePair<string, object>("name", line));
+                _datastore.Insert(insert);
+                //_datastore.Create(insert);
+                row--;
+            } while (true);
+            tr.Close();
+            tr.Dispose();
 
             // Seek the record
 
-            int row = _datahandler.Seek("laura");
-            Print(row);
+            row = _datastore.Seek("Bodhi");
+            Console.WriteLine("Seek: " + row);
+            Print(_datastore.Read(row));
+            Console.WriteLine("----");
+            //row = _datastore.Seek(199);
+            //Console.WriteLine("Seek: " + row);
+            //Print(_datastore.Read(row));
+
+            // Print the sorted table
+
+            PrintAll(_datastore.Read());
 
         }
 
         #endregion
         #region Methods
-        private void Print(int row)
+        private void Print(List<KeyValuePair<string, object>> record)
         {
-            object[] record = _datahandler.Read(row);
-            for (int j = 0; j < record.Length; j++)
+            for (int j = 0; j < record.Count; j++)
             {
-                Console.Write("\"" + _datahandler.Get(j).Name + "\"");
+                Console.Write("\"" + record[j].Key + "\"");
                 Console.Write("=");
-                TypeCode typeCode = _datahandler.Get(j).Type;
+                TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
                 switch (typeCode)
                 {
                     case TypeCode.String:
                         {
-                            Console.Write("\"" + Convert.ToString(record[j]) + "\"");
+                            Console.Write("\"" + record[j].Value + "\"");
                             break;
                         }
                     default:
                         {
-                            Console.Write(record[j]);
+                            Console.Write(record[j].Value);
                             break;
                         }
                 }
-                if (j < record.Length - 1)
+                if (j < record.Count - 1)
                 {
-                    Console.Write(", ");
+                    Console.Write(",");
                 }
             }
             Console.Write("\r\n");
         }
 
-        private void PrintAll()
+        private void PrintAll(List<List<KeyValuePair<string, object>>> records)
         {
-
-            for (int i = 0; i < _datahandler.Size; i++)
+            for (int i = 0; i < records.Count; i++)
             {
-                Console.Write(i + ", ");
-                object[] record = _datahandler.Read(i);
-                for (int j = 0; j < record.Length; j++)
+                List<KeyValuePair<string, object>> record = records[i];
+                for (int j = 0; j < record.Count; j++)
                 {
-                    Console.Write("\"" + _datahandler.Get(j).Name + "\"");
+                    Console.Write("\"" + record[j].Key + "\"");
                     Console.Write("=");
-                    TypeCode typeCode = _datahandler.Get(j).Type;
+                    TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
                     switch (typeCode)
                     {
                         case TypeCode.String:
                             {
-                                Console.Write("\"" + Convert.ToString(record[j]) + "\"");
+                                Console.Write("\"" + record[j].Value + "\"");
                                 break;
                             }
                         default:
                             {
-                                Console.Write(record[j]);
+                                Console.Write(record[j].Value);
                                 break;
                             }
                     }
-                    if (j < record.Length - 1)
+                    if (j < record.Count - 1)
                     {
                         Console.Write(",");
                     }

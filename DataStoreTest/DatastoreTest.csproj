@@ -13,6 +13,12 @@
     <ProjectReference Include="..\DatastoreLibrary\DatastoreLibrary.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Boys.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Girls.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="test.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

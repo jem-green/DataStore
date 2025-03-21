@@ -177,7 +177,7 @@ namespace DatastoreLibrary
 
         public void Index()
         {
-            // Need to delete the index and 
+            // Need to delete the index and crate a new one
             if (_handler != null)
             {
                 _handler.Index();
@@ -369,7 +369,6 @@ namespace DatastoreLibrary
         public List<FieldType> Get()
         {
             List<FieldType> fields = new List<FieldType>();
-
             if (_handler != null)
             {
                 for (int i = 0; i < _handler.Items; i++)
@@ -389,7 +388,7 @@ namespace DatastoreLibrary
         #region Record
 
         /// <summary>
-        /// Create new record
+        /// Create new record at the end of the Datastore
         /// </summary>
         /// <param name="data"></param>
         public void Create(List<KeyValuePair<string, object>> data)
@@ -442,11 +441,89 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// 
+        /// Insert a new record ordered by the primary key
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <exception cref="KeyNotFoundException"></exception>
+        public void Insert(List<KeyValuePair<string, object>> data)
+        {
+            if (_handler != null)
+            {
+                object[] record = new object[_handler.Items];
+                bool inserted = false;
+                object value = null;
+                foreach (KeyValuePair<string, object> entry in data)
+                {
+                    bool match = false;
+
+                    for (int i = 0; i < _handler.Items; i++)
+                    {
+                        if (entry.Key == _handler.Get(i).Name)
+                        {
+                            if (_handler.Get(i).Primary == true)
+                            {
+                                value = entry.Value;
+                            }
+
+                            if (_handler.Get(i).Type == TypeCode.String)
+                            {
+                                record[i] = Convert.ToString(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int16)
+                            {
+                                record[i] = Convert.ToInt16(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int32)
+                            {
+                                record[i] = Convert.ToInt32(entry.Value);
+                            }
+                            else if (_handler.Get(i).Type == TypeCode.Int64)
+                            {
+                                record[i] = Convert.ToInt64(entry.Value);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException("Type not implemented " + _handler.Get(i).Type.ToString());
+                            }
+                            match = true;
+                            inserted = true;
+                        }
+                    }
+                    if (match == false)
+                    {
+                        throw new KeyNotFoundException("No such key " + entry.Key.ToString());
+                    }
+                }
+
+                if (inserted == true)
+                {
+                    if (_handler.Size == 0)
+                    {
+                        _handler.Create(record);
+                    }
+                    else
+                    {
+                        int row = _handler.Seek(value, DataHandler.SearchType.Greater);
+                        if (row < 0)
+                        {
+                            _handler.Create(record);
+                        }
+                        else
+                        {
+                            _handler.Insert(record, row);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Insert a new record at the specified row
         /// </summary>
         /// <param name="data"></param>
         /// <exception cref="KeyNotFoundException"></exception>
-        public void Insert(List<KeyValuePair<string, object>> data, int row)
+        public void InsertAt(List<KeyValuePair<string, object>> data, int row)
         {
             if (_handler != null)
             {
@@ -668,14 +745,27 @@ namespace DatastoreLibrary
             return (dataType);
         }
 
-        public int Search(object record)
+        public int Search(object value)
         {
-            return (_handler.Search(record));
+            int row = -1;
+            if (_handler != null)
+            {
+                row = _handler.Search(value);
+            }
+            return (row);
         }
 
-        public int Seek(object record)
+        public int Seek(object value)
         {
-            return (_handler.Seek(record));
+            int row = -1;
+            if (_handler != null)
+            {
+                if (_handler.Size > 0)
+                {
+                    row = _handler.Seek(value, DataHandler.SearchType.Equal);
+                }
+            }
+            return (row);
         }
 
         #endregion

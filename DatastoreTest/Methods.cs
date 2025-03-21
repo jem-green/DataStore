@@ -42,7 +42,7 @@ namespace DatastoreTest
                 File.Delete(_name + ".idx");
             }
 
-            // Test the PersistentDatastore private methods
+            // Test the PersistentDatastore public methods
 
             _datastore = new PersistentDatastore(_path, _name);
 
@@ -76,6 +76,8 @@ namespace DatastoreTest
             {
                 _datastore.Reset();
             }
+
+
             _datastore.Add("id", "Int32", 0);
             _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10,false));
 
@@ -115,7 +117,7 @@ namespace DatastoreTest
             List<KeyValuePair<string, object>> insert = new List<KeyValuePair<string, object>>();
             insert.Add(new KeyValuePair<string, object>("id", 2));
             insert.Add(new KeyValuePair<string, object>("name", "Ash"));
-            _datastore.Insert(insert, 0);
+            _datastore.InsertAt(insert, 0);
             PrintAll(_datastore.Read());
 
         }
