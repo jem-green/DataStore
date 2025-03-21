@@ -108,6 +108,14 @@ namespace DatastoreTest
 
             PrintAll(_datastore.Read());
 
+            // Search for a record
+
+            Console.WriteLine("----");
+            row = _datastore.Search("Bodhi");
+            Console.WriteLine("Search: " + row);
+            Print(_datastore.Read(row));
+
+
         }
 
         #endregion

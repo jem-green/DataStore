@@ -2143,6 +2143,7 @@ namespace DatastoreLibrary
 
                     int diff = _size;
                     int row = diff / 2;
+                    diff = diff / 2;
                     int compare = 0;
                     do
                     {
@@ -2216,7 +2217,7 @@ namespace DatastoreLibrary
                             row = (int)(row - diff);
                         }
 
-                    } while ((compare < 0) && (diff > 0));
+                    } while ((compare != 0) && (diff > 0));
                     indexReader.Close();
                     indexReader.Dispose();
                 }
