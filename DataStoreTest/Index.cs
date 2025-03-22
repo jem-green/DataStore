@@ -53,7 +53,7 @@ namespace DatastoreTest
             // Set the Id to be the primary key
 
             _datastore.Add(new PersistentDatastore.FieldType("id", TypeCode.Int32, 4, false));
-            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10, true));
+            _datastore.Add(new PersistentDatastore.FieldType("name", TypeCode.String, 10, false));
 
             // Read in some name data to test the Seek method
 
@@ -96,7 +96,8 @@ namespace DatastoreTest
 
             // Seek the record
 
-            row = _datastore.Seek("Bodhi");
+            //row = _datastore.Seek("Bodhi");
+            row = _datastore.Seek(0);
             Console.WriteLine("Seek: " + row);
             Print(_datastore.Read(row));
             Console.WriteLine("----");
@@ -111,7 +112,9 @@ namespace DatastoreTest
             // Search for a record
 
             Console.WriteLine("----");
-            row = _datastore.Search("Bodhi");
+            //row = _datastore.Search("Bodhi");
+            row = _datastore.Seek(200);
+
             Console.WriteLine("Search: " + row);
             Print(_datastore.Read(row));
 

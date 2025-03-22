@@ -498,7 +498,7 @@ namespace DatastoreLibrary
 
                 if (inserted == true)
                 {
-                    if (_handler.Size == 0)
+                    if ((_handler.Size == 0) || (value == null))
                     {
                         _handler.Create(record);
                     }

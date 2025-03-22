@@ -1039,9 +1039,17 @@ namespace DatastoreLibrary
             if ((index >= 0) && (index < _items))
             {
                 // Build from cache, but could 
-                // have an option to rebuild from disk
+                // have an option to rebuild from disk if needed
 
-                Property field = _properties[index];
+                Property field = new Property();
+                if (_size >= 0)
+                {
+                    field = _properties[index];
+                }
+                else
+                {
+                    field = GetField(index);
+                }
                 return (field);
             }
             else
@@ -2020,9 +2028,24 @@ namespace DatastoreLibrary
 
                         if (_keyLength == 0)    // If no primary key defined then seek on the index
                         {
-                            if (index == Convert.ToUInt16(value))
+                            try
                             {
-                                seek = row;
+                                if ((row == (int)value) && (search == SearchType.Equal))
+                                {
+                                    seek = row;
+                                }
+                                else if ((row < (int)value) && (search == SearchType.Less))
+                                {
+                                    seek = row;
+                                }
+                                else if ((row > (int)value) && (search == SearchType.Greater))
+                                {
+                                    seek = row;
+                                }
+                            }
+                            catch
+                            {
+                                throw new InvalidDataException("Wrong format for primary key");
                             }
                         }
                         else
@@ -2037,11 +2060,11 @@ namespace DatastoreLibrary
                                         {
                                             seek = row;
                                         }
-                                        else if ((key > (Int16)value) && (search == SearchType.Less))
+                                        else if ((key < (Int16)value) && (search == SearchType.Less))
                                         {
                                             seek = row;
                                         }
-                                        else if ((key < (Int16)value) && (search == SearchType.Greater))
+                                        else if ((key > (Int16)value) && (search == SearchType.Greater))
                                         {
                                             seek = row;
                                         }
@@ -2232,6 +2255,13 @@ namespace DatastoreLibrary
         #endregion
         #region Private
 
+        /// <summary>
+        /// Get the type length
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         private byte GetTypeLength(TypeCode type, int length)
         {
             switch (type)
@@ -2288,6 +2318,8 @@ namespace DatastoreLibrary
             }
             return (Convert.ToByte(length));
         }
+
+
 
         private Property GetField(int index)
         {
