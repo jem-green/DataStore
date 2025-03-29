@@ -1,4 +1,6 @@
-﻿using System;
+﻿//  Copyright (c) 2017, Jeremy Green All rights reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime;
@@ -15,6 +17,20 @@ namespace DatastoreLibrary
         private string _index = "";
         private DataHandler _handler;
         private bool _open = false;
+
+        public enum RetrievalType
+        {
+            EqualTo = 0,
+            GreaterThan = 1,
+            LessThan = 2,
+            GreaterThanOrEqual = 3,
+            LaterThanOrEqual = 4,
+            Next = 5,
+            Previous = 6,
+            First = 7,
+            Last = 8,
+            Current = 9
+        }
 
         public struct FieldType
         {
@@ -185,7 +201,6 @@ namespace DatastoreLibrary
         }
 
         #endregion
-
         #region General
         public void New()
         {
@@ -388,7 +403,7 @@ namespace DatastoreLibrary
         #region Record
 
         /// <summary>
-        /// Create new record at the end of the Datastore
+        /// Create new record at the end of the records
         /// </summary>
         /// <param name="data"></param>
         public void Create(List<KeyValuePair<string, object>> data)
@@ -625,7 +640,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Update the record data at index
+        /// Update the record data at specified row
         /// </summary>
         /// <param name="row"></param>
         public void Update(List<KeyValuePair<string, object>> data, int row)
@@ -696,7 +711,7 @@ namespace DatastoreLibrary
         }
 
         /// <summary>
-        /// Delete the record at index
+        /// Delete the record at specified row
         /// </summary>
         /// <param name="row"></param>
         public void Delete(int row)
@@ -707,7 +722,58 @@ namespace DatastoreLibrary
             }
         }
 
-        public TypeCode TypeLookup(string type)
+        #endregion
+        #region Search
+
+        public int Search(object value)
+        {
+            int row = -1;
+            if (_handler != null)
+            {
+                row = _handler.Search(value);
+            }
+            return (row);
+        }
+
+        public int Find(object value)
+        {
+            return (Find(value, RetrievalType.EqualTo));
+        }
+
+        public int Find(object value, RetrievalType retrieval)
+        {
+            int row = -1;
+            if (_handler != null)
+            {
+                if (_handler.Size > 0)
+                {
+                    switch (retrieval)
+                    {
+                        case RetrievalType.EqualTo:
+                            {
+                                row = _handler.Seek(value, DataHandler.SearchType.Equal);
+                                break;
+                            }
+                        case RetrievalType.LessThan:
+                            {
+                                row = _handler.Seek(value, DataHandler.SearchType.Less);
+                                break;
+                            }
+                        case RetrievalType.GreaterThan:
+                            {
+                                row = _handler.Seek(value, DataHandler.SearchType.Less);
+                                break;
+                            }
+                    }
+                }
+            }
+            return (row);
+        }
+
+        #endregion
+        #endregion
+        #region Private
+        private TypeCode TypeLookup(string type)
         {
             TypeCode dataType = TypeCode.Int16;
 
@@ -744,31 +810,6 @@ namespace DatastoreLibrary
             }
             return (dataType);
         }
-
-        public int Search(object value)
-        {
-            int row = -1;
-            if (_handler != null)
-            {
-                row = _handler.Search(value);
-            }
-            return (row);
-        }
-
-        public int Seek(object value)
-        {
-            int row = -1;
-            if (_handler != null)
-            {
-                if (_handler.Size > 0)
-                {
-                    row = _handler.Seek(value, DataHandler.SearchType.Equal);
-                }
-            }
-            return (row);
-        }
-
-        #endregion
         #endregion
     }
 }

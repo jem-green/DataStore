@@ -4,14 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using TracerLibrary;
-using System.IO;
-using Microsoft.Win32;
-using System.Runtime.InteropServices;
-using System.ComponentModel.Design;
 using System.Reflection;
-using Microsoft.VisualBasic;
-using System.Xml.Linq;
-using System.Text.RegularExpressions;
 
 namespace DatastoreConsole
 {
@@ -33,7 +26,7 @@ namespace DatastoreConsole
         // Open -
         // Close - 
         // Reset -
-        // Index -
+        // Index -Make
         // New   -
         //
         // Field methods (ARSG)
@@ -47,6 +40,10 @@ namespace DatastoreConsole
         // Read -
         // Update -
         // Delete - 
+        //
+        // Search methods (F)
+        // Find -
+        // 
         // 
         // DatastoreConsole --filename "datastore" --filepath "c:\"
         // DatastoreConsole --filename "datastore" --filepath "c:\" OPEN [--reset]
@@ -64,6 +61,7 @@ namespace DatastoreConsole
         // DatastoreConsole --filename "datastore" --filepath "c:\" UPDATE --row --data "field=value[,field1=value1]"
         // DatastoreConsole --filename "datastore" --filepath "c:\" DELETE --row r | --all
 
+        // DatastoreConsole "c:\datastore" READ --row -all
         #region Fields
 
         static private PersistentDatastore _dataStore;
@@ -71,6 +69,8 @@ namespace DatastoreConsole
         static private bool _help = false;
         static private bool _version = false;
         static bool _readInput = false;
+		
+		// Required for the datastore
 
         static Parameter<bool> _all = new Parameter<bool>("all", false);
         static Parameter<string> _data = new Parameter<string>("data", "");
@@ -101,7 +101,8 @@ namespace DatastoreConsole
             Read = 10,
             Update = 11,
             Delete = 12,
-            Insert = 13
+            Insert = 13,
+            Find = 14
         }
 
         #endregion
@@ -110,7 +111,7 @@ namespace DatastoreConsole
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
-        ///
+		
         static int Main(string[] args)
         {
             // Read in specific configuration
@@ -236,8 +237,6 @@ namespace DatastoreConsole
                     _filename.Value = filenamePath;
                     _filename.Source = IParameter.SourceType.Command;
                 }
-                //TraceInternal.TraceVerbose("Use filename=" + _filename.Value);
-                //TraceInternal.TraceVerbose("use filePath=" + _filePath.Value);
             }
 
             else
@@ -346,6 +345,16 @@ namespace DatastoreConsole
                                 TraceInternal.TraceVerbose("DELETE record in datastore");
                                 break;
                             }
+
+                        // Index
+
+                        case "find":
+                            {
+                                _command = Command.Find;
+                                TraceInternal.TraceVerbose("FIND record in datastore");
+                                break;
+                            }
+
                         case "/a":
                         case "--all":
                             {
@@ -470,7 +479,7 @@ namespace DatastoreConsole
                                 valueName = valueName.TrimEnd('"');
                                 TraceInternal.TraceVerbose("Use command value Value=" + valueName);
 
-                                if ((_command == Command.Set) || (_command == Command.Add))
+                                if ((_command == Command.Set) || (_command == Command.Add) || (_command == Command.Find))
                                 {
                                     _value.Value = valueName;
                                     _value.Source = IParameter.SourceType.Command;
@@ -479,6 +488,7 @@ namespace DatastoreConsole
                                 else if ((_command == Command.Create) || (_command == Command.Update))
                                 {
                                     _values.Value.Add(valueName);
+                                    _values.Source = IParameter.SourceType.Command;
                                     TraceInternal.TraceVerbose("Add to values");
                                 }
                                 break;
@@ -488,7 +498,7 @@ namespace DatastoreConsole
             }
             _readInput = false; // Indicate that we don't need to do a read input
 
-            Debug.WriteLine("Enter PreProcess()");
+            Debug.WriteLine("Exit PreProcess()");
         }
 
         private static int PostProcess(string[] args)
@@ -496,281 +506,6 @@ namespace DatastoreConsole
             Debug.WriteLine("Enter PostProcess()");
 
             int errorCode = 1;
-
-            // Required for the datastore
-
-            //Read in any settings provided in the XML configuration
-
-            //int pos = 0;
-            //Parameter<string> appPath = new Parameter<string>("appPath", "");
-            //Parameter<string> appName = new Parameter<string>("appName", "datastore.cfg");
-            //appPath.Value = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            //pos = appPath.Value.ToString().LastIndexOf(Path.DirectorySeparatorChar);
-            //if (pos > 0)
-            //{
-            //    appPath.Value = appPath.Value.ToString().Substring(0, pos);
-            //    appPath.Source = IParameter.SourceType.App;
-            //}
-
-            //Parameter<string> logPath = new Parameter<string>("logPath", "");
-            //Parameter<string> logName = new Parameter<string>("logName", "datastoreconsole");
-            //logPath.Value = Environment.CurrentDirectory;
-
-            //logPath.Value = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            //pos = logPath.Value.ToString().LastIndexOf(Path.DirectorySeparatorChar);
-            //if (pos > 0)
-            //{
-            //    logPath.Value = logPath.Value.ToString().Substring(0, pos);
-            //    logPath.Source = Parameter<string>.SourceType.App;
-            //}
-
-            //Parameter<SourceLevels> traceLevels = new Parameter<SourceLevels>("traceLevels", SourceLevels.All);
-            //traceLevels.Value = TraceInternal.TraceLookup("none");
-            //traceLevels.Source = IParameter.SourceType.App;
-
-            //Configure tracer options
-
-            //string logFilenamePath = logPath.Value.ToString() + Path.DirectorySeparatorChar + logName.Value.ToString() + ".log";
-            //FileStreamWithRolling dailyRolling = new FileStreamWithRolling(logFilenamePath, new TimeSpan(1, 0, 0, 0), FileMode.Append);
-            //TextWriterTraceListenerWithTime listener = new TextWriterTraceListenerWithTime(dailyRolling);
-            //Trace.AutoFlush = true;
-            //TraceFilter fileTraceFilter = new System.Diagnostics.EventTypeFilter(traceLevels.Value);
-            //listener.Filter = fileTraceFilter;
-            //Trace.Listeners.Clear();
-            //Trace.Listeners.Add(listener);
-
-            //ConsoleTraceListener console = new ConsoleTraceListener();
-            //TraceFilter consoleTraceFilter = new System.Diagnostics.EventTypeFilter(SourceLevels.None);
-            //console.Filter = consoleTraceFilter;
-            //Trace.Listeners.Add(console);
-
-            //_filePath.Value = Environment.CurrentDirectory;
-            //_filePath.Source = IParameter.SourceType.App;
-
-            //if (IsLinux == false)
-            //{
-            //    RegistryKey key = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-            //    string keys = "software\\green\\datastore\\";
-            //    foreach (string subkey in keys.Split('\\'))
-            //    {
-            //        key = key.OpenSubKey(subkey);
-            //        if (key == null)
-            //        {
-            //            TraceInternal.TraceVerbose("Failed to open registry key " + subkey);
-            //            break;
-            //        }
-            //    }
-
-            //    Get the log path
-
-            //    try
-            //    {
-            //        if (key.GetValue("logpath", "").ToString().Length > 0)
-            //        {
-            //            logPath.Value = (string)key.GetValue("logpath", logPath);
-            //            logPath.Source = IParameter.SourceType.Registry;
-            //            TraceInternal.TraceVerbose("Use registry value; logPath=" + logPath);
-            //        }
-            //    }
-            //    catch (NullReferenceException)
-            //    {
-            //        TraceInternal.TraceVerbose("Registry error use default values; logPath=" + logPath.Value);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Trace.TraceError(e.ToString());
-            //    }
-
-            //    Get the log name
-
-            //    try
-            //    {
-            //        if (key.GetValue("logname", "").ToString().Length > 0)
-            //        {
-            //            logName.Value = (string)key.GetValue("logname", logName);
-            //            logName.Source = IParameter.SourceType.Registry;
-            //            TraceInternal.TraceVerbose("Use registry value; LogName=" + logName);
-            //        }
-            //    }
-            //    catch (NullReferenceException)
-            //    {
-            //        TraceInternal.TraceVerbose("Registry error use default values; LogName=" + logName.Value);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Trace.TraceError(e.ToString());
-            //    }
-
-            //    Get the name
-
-            //    try
-            //    {
-            //        if (key.GetValue("name", "").ToString().Length > 0)
-            //        {
-            //            appName.Value = (string)key.GetValue("name", appName);
-            //            appName.Source = IParameter.SourceType.Registry;
-            //            TraceInternal.TraceVerbose("Use registry value; Name=" + appName);
-            //        }
-            //    }
-            //    catch (NullReferenceException)
-            //    {
-            //        TraceInternal.TraceVerbose("Registry error use default values; Name=" + appName.Value);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Trace.TraceError(e.ToString());
-            //    }
-
-            //    Get the path
-
-            //    try
-            //    {
-            //        if (key.GetValue("path", "").ToString().Length > 0)
-            //        {
-            //            appPath.Value = (string)key.GetValue("path", appPath);
-            //            appPath.Source = IParameter.SourceType.Registry;
-            //            TraceInternal.TraceVerbose("Use registry value; Path=" + appPath);
-            //        }
-            //    }
-            //    catch (NullReferenceException)
-            //    {
-            //        TraceInternal.TraceVerbose("Registry error use default values; Path=" + appPath.Value);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Trace.TraceError(e.ToString());
-            //    }
-
-            //    Get the traceLevels
-
-            //    try
-            //    {
-            //        if (key.GetValue("debug", "").ToString().Length > 0)
-            //        {
-            //            string traceName = (string)key.GetValue("debug", "Verbose");
-            //            traceName = traceName.TrimStart('"');
-            //            traceName = traceName.TrimEnd('"');
-            //            traceLevels.Value = TraceInternal.TraceLookup(traceName);
-            //            traceLevels.Source = IParameter.SourceType.Registry;
-            //            TraceInternal.TraceVerbose("Use command value Debug=" + traceLevels);
-            //        }
-            //    }
-            //    catch (NullReferenceException)
-            //    {
-            //        Trace.TraceWarning("Registry error use default values; Debug=" + traceLevels.Value);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Trace.TraceError(e.ToString());
-            //    }
-            //}
-
-            //Check if command line parameter have been passed in and overwrite the registry
-
-            //int items = args.Length;
-            //for (int element = 0; element < items; element++)
-            //{
-
-            //    switch (args[element])
-            //    {
-            //        case "/D":
-            //        case "--debug":
-            //            {
-            //                string traceName = args[++element];
-            //                traceName = traceName.TrimStart('"');
-            //                traceName = traceName.TrimEnd('"');
-            //                traceLevels.Value = TraceInternal.TraceLookup(traceName);
-            //                traceLevels.Source = IParameter.SourceType.Command;
-            //                TraceInternal.TraceVerbose("Use command value Debug=" + traceLevels);
-            //                break;
-            //            }
-            //        case "/N":
-            //        case "--name":
-            //            {
-            //                appName.Value = args[++element];
-            //                appName.Value = appName.Value.TrimStart('"');
-            //                appName.Value = appName.Value.TrimEnd('"');
-            //                appName.Source = IParameter.SourceType.Command;
-            //                TraceInternal.TraceVerbose("Use command value Name=" + appName);
-            //                break;
-            //            }
-            //        case "/P":
-            //        case "--path":
-            //            {
-            //                appPath.Value = args[++element];
-            //                appPath.Value = appPath.Value.TrimStart('"');
-            //                appPath.Value = appPath.Value.TrimEnd('"');
-            //                appPath.Source = IParameter.SourceType.Command;
-            //                TraceInternal.TraceVerbose("Use command value Path=" + appPath);
-            //                break;
-            //            }
-            //        case "/n":
-            //        case "--logname":
-            //            {
-            //                logName.Value = args[++element];
-            //                logName.Value = logName.Value.ToString().TrimStart('"');
-            //                logName.Value = logName.Value.ToString().TrimEnd('"');
-            //                logName.Source = IParameter.SourceType.Command;
-            //                TraceInternal.TraceVerbose("Use command value logName=" + logName);
-            //                break;
-            //            }
-            //        case "/p":
-            //        case "--logpath":
-            //            {
-            //                logPath.Value = args[++element];
-            //                logPath.Value = logPath.Value.ToString().TrimStart('"');
-            //                logPath.Value = logPath.Value.ToString().TrimEnd('"');
-            //                logPath.Source = IParameter.SourceType.Command;
-            //                TraceInternal.TraceVerbose("Use command value logPath=" + logPath);
-            //                break;
-            //            }
-            //    }
-            //}
-            //TraceInternal.TraceInformation("Use Name=" + appName.Value + " Path=" + appPath.Value);
-
-            // Read in configuration
-
-            //Serialise serialise = new Serialise(appName.Value, appPath.Value);
-            //_clean = serialise.FromXML();
-            //if (_clean != null)
-            //{
-            //    // update configuration if parameters are passed
-
-            //    if (process.Source == Parameter<string>.SourceType.None)
-            //    {
-            //        process.Source = Parameter<string>.SourceType.File;
-            //        process.Value = _clean.Process.ToString();
-            //    }
-
-            //    if (type.Source == Parameter<string>.SourceType.None)
-            //    {
-            //        type.Source = Parameter<string>.SourceType.File;
-            //        type.Value = _clean.Type.ToString();
-            //    }
-            //}
-
-            // Redirect the output
-
-            //listener.Flush();
-            //Trace.Listeners.Remove(listener);
-            //listener.Close();
-            //listener.Dispose();
-
-            //logFilenamePath = logPath.Value.ToString() + Path.DirectorySeparatorChar + logName.Value.ToString() + ".log";
-            //dailyRolling = new FileStreamWithRolling(logFilenamePath, new TimeSpan(1, 0, 0, 0), FileMode.Append);
-            //listener = new TextWriterTraceListenerWithTime(dailyRolling);
-            //Trace.AutoFlush = true;
-            //SourceLevels sourceLevels = TraceInternal.TraceLookup(traceLevels.Value.ToString());
-            //fileTraceFilter = new System.Diagnostics.EventTypeFilter(sourceLevels);
-            //listener.Filter = fileTraceFilter;
-            //Trace.Listeners.Add(listener);
-
-            //TraceInternal.TraceInformation("Use Name=" + appName.Value);
-            //TraceInternal.TraceInformation("Use Path=" + appPath.Value);
-            TraceInternal.TraceInformation("Use Filename=" + _filename);
-            TraceInternal.TraceInformation("Use FilePath=" + _filePath);
-            //TraceInternal.TraceInformation("Use Log Name=" + logName.Value);
-            //TraceInternal.TraceInformation("Use Log Path=" + logPath.Value);
 
             // Check that the datastore has been opened
 
@@ -785,6 +520,8 @@ namespace DatastoreConsole
 
                     case Command.Open:
                         {
+                            // Potentially reopen
+
                             string output = "OPEN";
                             if (_help == true)
                             {
@@ -870,7 +607,7 @@ namespace DatastoreConsole
                             string output = "REMOVE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] [--all] [--item ROW]";
+                                output = output + " --filename FILE [--filepath PATH] --all | --item INDEX";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
@@ -892,7 +629,7 @@ namespace DatastoreConsole
                             string output = "SET";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --item ITEM --field \"FIELD\" --type \"TYPE\" --length LENGTH";
+                                output = output + " --filename FILE [--filepath PATH] --item INDEX --field \"FIELD\" --type \"TYPE\" --length LENGTH";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
@@ -909,7 +646,7 @@ namespace DatastoreConsole
                             StringBuilder builder = new StringBuilder();
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] [--all] [--item ROW]";
+                                output = output + " --filename FILE [--filepath PATH] --all | --item INDEX";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
@@ -920,6 +657,10 @@ namespace DatastoreConsole
                                 for (int j = 0; j < fields.Count; j++)
                                 {
                                     builder.Append("\"" + fields[j].Name + "\"");
+                                    if (fields[j].Primary == true)
+                                    {
+                                        builder.Append('*');
+                                    }
                                     builder.Append('[');
                                     builder.Append(fields[j].Type);
                                     if (fields[j].Type == TypeCode.String)
@@ -1025,7 +766,7 @@ namespace DatastoreConsole
                             StringBuilder builder = new StringBuilder();
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] [--all] [--row ROW]";
+                                output = output + " --filename FILE [--filepath PATH] --all | --row ROW";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
@@ -1140,7 +881,7 @@ namespace DatastoreConsole
                             string output = "DELETE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] -all";
+                                output = output + " --filename FILE [--filepath PATH] --all | --row ROW";
                                 Console.WriteLine(output);
                             }
                             else
@@ -1160,15 +901,57 @@ namespace DatastoreConsole
                             }
                             break;
                         }
+                    case Command.Find:
+                        {
+                            string output = "FIND";
+                            StringBuilder builder = new StringBuilder();
+                            if (_help == true)
+                            {
+                                output = output + " --filename FILE [--filepath PATH] --value VALUE --";
+                                Console.WriteLine(output);
+                            }
+                            else
+                            {
+                                output = output + " --value " + _value.Value;
+                                Console.WriteLine(output);
+                                int row = _dataStore.Find(_value.Value);
+                                if (row > -1)
+                                {
+                                    List<KeyValuePair<string, object>> record = _dataStore.Read(row);
+                                    if (record.Count > 0)
+                                    {
+                                        for (int j = 0; j < record.Count; j++)
+                                        {
+                                            builder.Append("\"" + record[j].Key + "\"");
+                                            builder.Append('=');
+                                            TypeCode typeCode = Convert.GetTypeCode(record[j].Value);
+                                            switch (typeCode)
+                                            {
+                                                case TypeCode.String:
+                                                    {
+                                                        builder.Append("\"" + record[j].Value + "\"");
+                                                        break;
+                                                    }
+                                                default:
+                                                    {
+                                                        builder.Append(record[j].Value);
+                                                        break;
+                                                    }
+                                            }
+                                            if (j < record.Count - 1)
+                                            {
+                                                builder.Append(',');
+                                            }
+                                        }
+                                    }
+                                    Console.WriteLine(builder.ToString());
+                                }
+                            }
+                            break;
+                        }
                 }
                 errorCode = 0;
             }
-
-            // Redirect the output
-
-            //listener.Flush();
-            //listener.Close();
-            //listener.Dispose();
 
             Debug.WriteLine("Exit Main()");
             return (errorCode);
@@ -1197,7 +980,7 @@ namespace DatastoreConsole
             usage += "    --type TYPE                       Specify the field type\n";
             usage += "    --length LENGTH                   For text fieles Specify the field length\n";
             usage += "    remove                            Remove a field in an empty datastore\n";
-            usage += "    --item ITEM                       Specify the item number\n";
+            usage += "    --item INDEX                      Specify the item number\n";
             usage += "    --all                             Specify all items\n";
             usage += "    set                               Set the field in the datastore\n";
             usage += "    get                               Get the field(s) in the datastore\n";
@@ -1211,6 +994,9 @@ namespace DatastoreConsole
             usage += "    --all                             Specify all rows\n";
             usage += "    update                            Update a record in the datastore\n";
             usage += "    delete                            Delete a record in the datastore\n";
+            usage += "Search commands\n";
+            usage += "    find                              Find a record in the datastore\n";
+            usage += "    --value VALUE                     Specify the key\n";
             usage += "\n";
             usage += "\n";
             return (usage);
@@ -1224,6 +1010,7 @@ namespace DatastoreConsole
                 return ((platform == PlatformID.Unix) || (platform == PlatformID.MacOSX));
             }
         }
+
         private static TypeCode TypeLookup(string type)
         {
             TypeCode dataType = TypeCode.Int16;

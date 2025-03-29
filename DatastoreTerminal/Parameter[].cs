@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DatastoreLibrary
+namespace DatastoreTerminal
 {
     public class Parameter<T> : Parameter, IEquatable<Parameter>
     {

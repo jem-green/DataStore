@@ -84,7 +84,7 @@ namespace DatastoreTests
             // Seek data
             // 1, id=1, name="Laura"
 
-            int row = _datastore.Seek("Jeremy");
+            int row = _datastore.Find("Jeremy");
             Print(_datastore.Read(row));
 
             Console.WriteLine("");

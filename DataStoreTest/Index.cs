@@ -96,8 +96,9 @@ namespace DatastoreTest
 
             // Seek the record
 
+            Console.WriteLine("----");
             //row = _datastore.Seek("Bodhi");
-            row = _datastore.Seek(0);
+            row = _datastore.Find(0);
             Console.WriteLine("Seek: " + row);
             Print(_datastore.Read(row));
             Console.WriteLine("----");
@@ -113,11 +114,10 @@ namespace DatastoreTest
 
             Console.WriteLine("----");
             //row = _datastore.Search("Bodhi");
-            row = _datastore.Seek(200);
-
+            row = _datastore.Find(200);
             Console.WriteLine("Search: " + row);
             Print(_datastore.Read(row));
-
+            Console.WriteLine("----");
 
         }
 

@@ -1,10 +1,8 @@
 ﻿//  Copyright (c) 2017, Jeremy Green All rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace DatastoreLibrary
+namespace DatastoreConsole
 {
     /// <summary>
     /// Storage class for a parameter

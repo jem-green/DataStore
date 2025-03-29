@@ -1,4 +1,6 @@
-﻿using System;
+﻿//  Copyright (c) 2017, Jeremy Green All rights reserved.
+
+using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Numerics;
@@ -2013,6 +2015,17 @@ namespace DatastoreLibrary
         internal int Seek(object value, SearchType search)
         {
             int seek = -1;
+            int from = 0;
+            int to = _size;
+            int step = 1;
+
+            if (search == SearchType.Less)
+            {
+                from = _size - 1;
+                to = 0;
+                step = -1;
+            }
+
             string indexPath = System.IO.Path.Combine(_path, _index);
             if ((_keyLength == 0) ||(Convert.GetTypeCode(value) == _properties[_keyItem].Type))
             {
@@ -2020,31 +2033,31 @@ namespace DatastoreLibrary
                 {
                     FileStream stream = new FileStream(indexPath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                     BinaryReader indexReader = new BinaryReader(stream);
-                    for (int row = 0; row < _size; row++)
+                    for (int row = from; row < to; row = row + step)
                     {
                         indexReader.BaseStream.Seek(_begin + row * (_keyLength + 6), SeekOrigin.Begin);
                         UInt16 index = indexReader.ReadUInt16();
                         UInt16 pointer = indexReader.ReadUInt16();                                      // Read the pointer from the index file
-
                         if (_keyLength == 0)    // If no primary key defined then seek on the index
                         {
                             try
                             {
-                                if ((row == (int)value) && (search == SearchType.Equal))
+                                if ((row == Convert.ToUInt16(value)) && (search == SearchType.Equal))
                                 {
                                     seek = row;
                                 }
-                                else if ((row < (int)value) && (search == SearchType.Less))
+                                else if ((row < Convert.ToUInt16(value)) && (search == SearchType.Less))
                                 {
                                     seek = row;
                                 }
-                                else if ((row > (int)value) && (search == SearchType.Greater))
+                                else if ((row > Convert.ToUInt16(value)) && (search == SearchType.Greater))
                                 {
                                     seek = row;
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                Console.WriteLine("Error: " + ex.Message);
                                 throw new InvalidDataException("Wrong format for primary key");
                             }
                         }

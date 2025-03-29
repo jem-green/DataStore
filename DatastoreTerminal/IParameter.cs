@@ -1,4 +1,4 @@
-﻿namespace DatastoreConsole
+﻿namespace DatastoreTerminal
 {
     public interface IParameter
     {
