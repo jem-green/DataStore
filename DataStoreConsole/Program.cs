@@ -3,7 +3,6 @@ using DatastoreLibrary;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
-using TracerLibrary;
 using System.Reflection;
 
 namespace DatastoreConsole
@@ -270,25 +269,21 @@ namespace DatastoreConsole
                         case "open":
                             {
                                 _command = Command.Open;
-                                TraceInternal.TraceVerbose("OPEN datastore");
                                 break;
                             }
                         case "close":
                             {
                                 _command = Command.Close;
-                                TraceInternal.TraceVerbose("OPEN datastore");
                                 break;
                             }
                         case "reset":
                             {
                                 _command = Command.Reset;
-                                TraceInternal.TraceVerbose("RESET datastore");
                                 break;
                             }
                         case "new":
                             {
                                 _command = Command.New;
-                                TraceInternal.TraceVerbose("NEW datastore");
                                 break;
                             }
 
@@ -297,25 +292,21 @@ namespace DatastoreConsole
                         case "add":
                             {
                                 _command = Command.Add;
-                                TraceInternal.TraceVerbose("ADD field property to datastore");
                                 break;
                             }
                         case "remove":
                             {
                                 _command = Command.Remove;
-                                TraceInternal.TraceVerbose("REMOVE field property to datastore");
                                 break;
                             }
                         case "set":
                             {
                                 _command = Command.Set;
-                                TraceInternal.TraceVerbose("SET field property to new value in datastore");
                                 break;
                             }
                         case "get":
                             {
                                 _command = Command.Get;
-                                TraceInternal.TraceVerbose("GET field property from datastore");
                                 break;
                             }
 
@@ -324,25 +315,21 @@ namespace DatastoreConsole
                         case "create":
                             {
                                 _command = Command.Create;
-                                TraceInternal.TraceVerbose("CREATE record in datastore");
                                 break;
                             }
                         case "read":
                             {
                                 _command = Command.Read;
-                                TraceInternal.TraceVerbose("READ record from datastore");
                                 break;
                             }
                         case "update":
                             {
                                 _command = Command.Update;
-                                TraceInternal.TraceVerbose("UPDATE record in datastore");
                                 break;
                             }
                         case "delete":
                             {
                                 _command = Command.Delete;
-                                TraceInternal.TraceVerbose("DELETE record in datastore");
                                 break;
                             }
 
@@ -351,7 +338,6 @@ namespace DatastoreConsole
                         case "find":
                             {
                                 _command = Command.Find;
-                                TraceInternal.TraceVerbose("FIND record in datastore");
                                 break;
                             }
 
@@ -360,7 +346,6 @@ namespace DatastoreConsole
                             {
                                 _all.Value = true;
                                 _all.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value All=" + _all);
                                 break;
                             }
                         case "/f":
@@ -376,7 +361,6 @@ namespace DatastoreConsole
                                     extension = _filename.Value.Substring(pos + 1, _filename.Value.Length - pos - 1);
                                     _filename.Value = _filename.Value.Substring(0, pos);
                                 }
-                                TraceInternal.TraceVerbose("Use command value Filename=" + _filename);
                                 break;
                             }
                         case "/p":
@@ -386,7 +370,6 @@ namespace DatastoreConsole
                                 _filePath.Value = _filePath.Value.TrimStart('"');
                                 _filePath.Value = _filePath.Value.TrimEnd('"');
                                 _filePath.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value FilePath=" + _filePath);
                                 break;
                             }
                         case "/F":
@@ -397,19 +380,16 @@ namespace DatastoreConsole
                                     string fieldName = args[++element];
                                     fieldName = fieldName.TrimStart('"');
                                     fieldName = fieldName.TrimEnd('"');
-                                    TraceInternal.TraceVerbose("Use command value Field=" + fieldName);
 
                                     if ((_command == Command.Set) || (_command == Command.Add))
                                     {
                                         _field.Value = fieldName;
                                         _field.Source = IParameter.SourceType.Command;
-                                        TraceInternal.TraceVerbose("Set field");
                                     }
                                     else if ((_command == Command.Create) || (_command == Command.Update))
                                     {
                                         _fields.Value.Add(fieldName);
                                         _fields.Source = IParameter.SourceType.Command;
-                                        TraceInternal.TraceVerbose("Add to fields");
                                     }
                                 }
                                 break;
@@ -422,7 +402,6 @@ namespace DatastoreConsole
                                 itemName = itemName.TrimEnd('"');
                                 _item.Value = Convert.ToInt32(itemName);
                                 _item.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value Item=" + _item);
                                 break;
                             }
                         case "/l":
@@ -433,7 +412,6 @@ namespace DatastoreConsole
                                 lengthName = lengthName.TrimEnd('"');
                                 _length.Value = Convert.ToByte(lengthName);
                                 _length.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value Length=" + _length);
                                 break;
                             }
                         case "/r":
@@ -441,7 +419,6 @@ namespace DatastoreConsole
                             {
                                 _reset.Value = true;
                                 _reset.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value Reset=" + _reset);
                                 break;
                             }
                         case "/R":
@@ -452,7 +429,6 @@ namespace DatastoreConsole
                                 rowName = rowName.TrimEnd('"');
                                 _row.Value = Convert.ToInt32(rowName);
                                 _row.Source = IParameter.SourceType.Command;
-                                TraceInternal.TraceVerbose("Use command value Row=" + _row);
                                 break;
                             }
                         case "/t":
@@ -461,13 +437,11 @@ namespace DatastoreConsole
                                 string typeName = args[++element];
                                 typeName = typeName.TrimStart('"');
                                 typeName = typeName.TrimEnd('"');
-                                TraceInternal.TraceVerbose("Use command value Type=" + typeName);
 
                                 if ((_command == Command.Set) || (_command == Command.Add))
                                 {
                                     _type.Value = TypeLookup(typeName);
                                     _type.Source = IParameter.SourceType.Command;
-                                    TraceInternal.TraceVerbose("Set type");
                                 }
                                 break;
                             }
@@ -477,19 +451,16 @@ namespace DatastoreConsole
                                 string valueName = args[++element];
                                 valueName = valueName.TrimStart('"');
                                 valueName = valueName.TrimEnd('"');
-                                TraceInternal.TraceVerbose("Use command value Value=" + valueName);
 
                                 if ((_command == Command.Set) || (_command == Command.Add) || (_command == Command.Find))
                                 {
                                     _value.Value = valueName;
                                     _value.Source = IParameter.SourceType.Command;
-                                    TraceInternal.TraceVerbose("Set value");
                                 }
                                 else if ((_command == Command.Create) || (_command == Command.Update))
                                 {
                                     _values.Value.Add(valueName);
                                     _values.Source = IParameter.SourceType.Command;
-                                    TraceInternal.TraceVerbose("Add to values");
                                 }
                                 break;
                             }
