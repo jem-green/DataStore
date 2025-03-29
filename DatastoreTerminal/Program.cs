@@ -6,6 +6,7 @@ using System.Diagnostics;
 using TracerLibrary;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace DatastoreTerminal
 {
@@ -120,18 +121,18 @@ namespace DatastoreTerminal
             // Read in any settings provided in the XML configuration
 
             int pos = 0;
-            Parameter<string> appPath = new Parameter<string>("");
-            Parameter<string> appName = new Parameter<string>("datastore.cfg");
+            Parameter<string> appPath = new Parameter<string>("appPath","");
+            Parameter<string> appName = new Parameter<string>("appName","datastore.cfg");
             appPath.Value = System.Reflection.Assembly.GetExecutingAssembly().Location;
             pos = appPath.Value.ToString().LastIndexOf(Path.DirectorySeparatorChar);
             if (pos > 0)
             {
                 appPath.Value = appPath.Value.ToString().Substring(0, pos);
-                appPath.Source = Parameter<string>.SourceType.App;
+                appPath.Source = IParameter.SourceType.App;
             }
 
-            Parameter<string> logPath = new Parameter<string>("");
-            Parameter<string> logName = new Parameter<string>("datastoreconsole");
+            Parameter<string> logPath = new Parameter<string>("logPath","");
+            Parameter<string> logName = new Parameter<string>("logName","datastoreterminal");
             logPath.Value = Environment.CurrentDirectory;
             //logPath.Value = System.Reflection.Assembly.GetExecutingAssembly().Location;
             //pos = logPath.Value.ToString().LastIndexOf(Path.DirectorySeparatorChar);
@@ -141,9 +142,8 @@ namespace DatastoreTerminal
             //    logPath.Source = Parameter<string>.SourceType.App;
             //}
 
-            Parameter<SourceLevels> traceLevels = new Parameter<SourceLevels>();
-            traceLevels.Value = TraceInternal.TraceLookup("none");
-            traceLevels.Source = Parameter<SourceLevels>.SourceType.App;
+            Parameter<SourceLevels> traceLevels = new Parameter<SourceLevels>("traceLevels", TraceInternal.TraceLookup("none"));
+            traceLevels.Source = IParameter.SourceType.App;
 
             // Configure tracer options
 
@@ -162,7 +162,7 @@ namespace DatastoreTerminal
             //Trace.Listeners.Add(console);
 
             _filePath.Value = Environment.CurrentDirectory;
-            _filePath.Source = Parameter<string>.SourceType.App;
+            _filePath.Source = IParameter.SourceType.App;
 
             // Check if the config file has been passed in and overwrite the registry
 
@@ -178,7 +178,7 @@ namespace DatastoreTerminal
                             traceName = traceName.TrimStart('"');
                             traceName = traceName.TrimEnd('"');
                             traceLevels.Value = TraceInternal.TraceLookup(traceName);
-                            traceLevels.Source = Parameter<SourceLevels>.SourceType.Command;
+                            traceLevels.Source = IParameter.SourceType.Command;
                             TraceInternal.TraceVerbose("Use command value Debug=" + traceLevels);
                             break;
                         }
@@ -188,7 +188,7 @@ namespace DatastoreTerminal
                             appName.Value = args[++element];
                             appName.Value = appName.Value.TrimStart('"');
                             appName.Value = appName.Value.TrimEnd('"');
-                            appName.Source = Parameter<string>.SourceType.Command;
+                            appName.Source = IParameter.SourceType.Command;
                             TraceInternal.TraceVerbose("Use command value Name=" + appName);
                             break;
                         }
@@ -198,7 +198,7 @@ namespace DatastoreTerminal
                             appPath.Value = args[++element];
                             appPath.Value = appPath.Value.TrimStart('"');
                             appPath.Value = appPath.Value.TrimEnd('"');
-                            appPath.Source = Parameter<string>.SourceType.Command;
+                            appPath.Source = IParameter.SourceType.Command;
                             TraceInternal.TraceVerbose("Use command value Path=" + appPath);
                             break;
                         }
@@ -208,7 +208,7 @@ namespace DatastoreTerminal
                             logName.Value = args[++element];
                             logName.Value = logName.Value.ToString().TrimStart('"');
                             logName.Value = logName.Value.ToString().TrimEnd('"');
-                            logName.Source = Parameter<string>.SourceType.Command;
+                            logName.Source = IParameter.SourceType.Command;
                             TraceInternal.TraceVerbose("Use command value logName=" + logName);
                             break;
                         }
@@ -218,7 +218,7 @@ namespace DatastoreTerminal
                             logPath.Value = args[++element];
                             logPath.Value = logPath.Value.ToString().TrimStart('"');
                             logPath.Value = logPath.Value.ToString().TrimEnd('"');
-                            logPath.Source = Parameter<string>.SourceType.Command;
+                            logPath.Source = IParameter.SourceType.Command;
                             TraceInternal.TraceVerbose("Use command value logPath=" + logPath);
                             break;
                         }
@@ -235,9 +235,14 @@ namespace DatastoreTerminal
             bool filename = false;
             bool help = false;
 
-            foreach (string arg in args)
+            for (int element = 0; element < args.Length; element++)
             {
-                switch (arg)
+                string lookup = args[element];
+                if (lookup.Length > 1)
+                {
+                    lookup = lookup.ToLower();
+                }
+                switch (lookup)
                 {
                     case "/f":
                     case "--filename":
@@ -325,7 +330,9 @@ namespace DatastoreTerminal
                                 break;
                             }
                         case "/h":
+                        case "/H":
                         case "/?":
+                        case "--?":
                         case "--help":
                             {
                                 _help = true;

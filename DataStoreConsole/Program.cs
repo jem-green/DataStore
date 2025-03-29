@@ -2,7 +2,6 @@
 using DatastoreLibrary;
 using System.Collections.Generic;
 using System.Text;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace DatastoreConsole
@@ -115,32 +114,30 @@ namespace DatastoreConsole
         {
             // Read in specific configuration
 
-            Debug.WriteLine("Enter Main()");
             int errorCode = -2;
 
             if (args.Length > 0)
             {
-                if (ValidateArguments(args))
+                int pass = ValidateArguments(args);
+                if (pass == 2)
+                {
+                    Console.WriteLine("DATASTORE " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                    errorCode = 0;
+                }
+                else if (pass == 1)
                 {
                     PreProcess(args);
-                    if (_version)
+
+                    if (_readInput)
                     {
-                        Console.WriteLine("datastore " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                        errorCode = 0;
-                    }
-                    else
-                    {
-                        if (_readInput)
+                        string currentLine = Console.In.ReadLine();
+                        while (currentLine != null)
                         {
-                            string currentLine = Console.In.ReadLine();
-                            while (currentLine != null)
-                            {
-                                //ProcessLine(currentLine);
-                                currentLine = Console.In.ReadLine();
-                            }
+                            //ProcessLine(currentLine);
+                            currentLine = Console.In.ReadLine();
                         }
-                        errorCode = PostProcess(args);
                     }
+                    errorCode = PostProcess(args);
                 }
                 else
                 {
@@ -154,26 +151,38 @@ namespace DatastoreConsole
                 errorCode = -1;
             }
 
-            Debug.WriteLine("Exit Main()");
             return (errorCode);
         }
 
-        private static bool ValidateArguments(string[] args)
+        private static int ValidateArguments(string[] args)
         {
             // Passed args allow for changes to web address and application location
 
+            int pass = 0;
             bool path = false;
             bool filename = false;
             bool help = false;
+            bool version = false;
 
-            foreach (string arg in args)
+            for (int element = 0; element < args.Length; element++)
             {
-                switch (arg)
+                string lookup = args[element];
+                if (lookup.Length > 1)
+                {
+                    lookup = lookup.ToLower();
+                }
+                switch (lookup)
                 {
                     case "/f":
                     case "--filename":
                         {
                             filename = true;
+                            break;
+                        }
+                    case "/v":
+                    case "--version":
+                        {
+                            version = true;
                             break;
                         }
                     case "/?":
@@ -188,25 +197,30 @@ namespace DatastoreConsole
                 }
             }
 
-            if ((filename == true) || ((filename == false) && (help == false)))
+            if (filename == true)
             {
-                return (true);
+                return (1);
             }
+            else if (version == true)
+            {
+                return (2);
+            }
+            //else if ((filename == false) && (help == false))
+            //{
+            //    return (1);
+            //}
             else
             {
-                return (false);
+                return (-1);
             }
-
         }
 
         private static void PreProcess(string[] args)
         {
-            Debug.WriteLine("Enter PreProcess()");
 
             string filenamePath = "";
             string extension = "";
             int pos = 0;
-
             int arguments = args.Length;
             if (arguments == 1)
             {
@@ -257,6 +271,8 @@ namespace DatastoreConsole
                                 break;
                             }
                         case "/h":
+                        case "/H":
+                        case "--?":
                         case "/?":
                         case "--help":
                             {
@@ -469,12 +485,10 @@ namespace DatastoreConsole
             }
             _readInput = false; // Indicate that we don't need to do a read input
 
-            Debug.WriteLine("Exit PreProcess()");
         }
 
         private static int PostProcess(string[] args)
         {
-            Debug.WriteLine("Enter PostProcess()");
 
             int errorCode = 1;
 
@@ -514,7 +528,7 @@ namespace DatastoreConsole
                             string output = "CLOSE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] RESET";
+                                output += " --filename FILE [--filepath PATH] RESET";
                                 Console.WriteLine(output);
                             }
                             else
@@ -544,7 +558,7 @@ namespace DatastoreConsole
                             string output = "NEW";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] NEW";
+                                output += " --filename FILE [--filepath PATH] NEW";
                                 Console.WriteLine(output);
                             }
                             else
@@ -562,12 +576,12 @@ namespace DatastoreConsole
                             string output = "ADD";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --field FIELD --type TYPE [--length LENGTH]";
+                                output += " --filename FILE [--filepath PATH] --field FIELD --type TYPE [--length LENGTH]";
                                 Console.WriteLine(output);
                             }
                             else
                             {
-                                output = output + String.Format(" --field \"{0}\" --type \"{1}\" --length {2}", _field.Value, _type.Value, _length.Value);
+                                output += String.Format(" --field \"{0}\" --type \"{1}\" --length {2}", _field.Value, _type.Value, _length.Value);
                                 Console.WriteLine(output);
                                 _dataStore.Add(_field.Value, _type.Value, _length.Value,false);
                             }
@@ -578,18 +592,18 @@ namespace DatastoreConsole
                             string output = "REMOVE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --all | --item INDEX";
+                                output += " --filename FILE [--filepath PATH] --all | --item INDEX";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
                             {
-                                output = output + " --all";
+                                output += " --all";
                                 Console.WriteLine(output);
                                 _dataStore.Remove();
                             }
                             else
                             {
-                                output = output + String.Format(" --item {0}", _item.Value);
+                                output += String.Format(" --item {0}", _item.Value);
                                 Console.WriteLine(output);
                                 _dataStore.Remove(_item.Value);
                             }
@@ -600,12 +614,12 @@ namespace DatastoreConsole
                             string output = "SET";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --item INDEX --field \"FIELD\" --type \"TYPE\" --length LENGTH";
+                                output += " --filename FILE [--filepath PATH] --item INDEX --field \"FIELD\" --type \"TYPE\" --length LENGTH";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
                             {
-                                output = output + String.Format(" --item {0} --field \"{1}\" --type \"{2}\" --length {3}", ~_item.Value, _field.Value, _type.Value, _length.Value);
+                                output += String.Format(" --item {0} --field \"{1}\" --type \"{2}\" --length {3}", ~_item.Value, _field.Value, _type.Value, _length.Value);
                                 Console.WriteLine(output);
                                 _dataStore.Set(_item.Value, _field.Value, _type.Value, _length.Value);
                             }
@@ -617,12 +631,12 @@ namespace DatastoreConsole
                             StringBuilder builder = new StringBuilder();
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --all | --item INDEX";
+                                output += " --filename FILE [--filepath PATH] --all | --item INDEX";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
                             {
-                                output = output + " --all";
+                                output += " --all";
                                 Console.WriteLine(output);
                                 List<PersistentDatastore.FieldType> fields = _dataStore.Get();
                                 for (int j = 0; j < fields.Count; j++)
@@ -650,7 +664,7 @@ namespace DatastoreConsole
                             }
                             else
                             {
-                                output = output + " --item " + _item.Value;
+                                output += " --item " + _item.Value;
                                 Console.WriteLine(output);
                                 PersistentDatastore.FieldType field = _dataStore.Get(_item.Value);
 
@@ -675,7 +689,7 @@ namespace DatastoreConsole
                             string output = "CREATE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --field \"FIELD\" --value \"VALUE\"";
+                                output += " --filename FILE [--filepath PATH] --field \"FIELD\" --value \"VALUE\"";
                                 Console.WriteLine(output);
                             }
                             else
@@ -687,7 +701,7 @@ namespace DatastoreConsole
                                         List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
                                         for (int i = 0; i < _fields.Value.Count; i += 1)
                                         {
-                                            output = output + " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
+                                            output += " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
                                             record.Add(new KeyValuePair<string, object>(_fields.Value[i], _values.Value[i]));
                                         }
                                         if (record.Count > 0)
@@ -705,7 +719,7 @@ namespace DatastoreConsole
                             string output = "INSERT";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --row ROW";
+                                output += " --filename FILE [--filepath PATH] --row ROW";
                                 Console.WriteLine(output);
                             }
                             else
@@ -714,11 +728,11 @@ namespace DatastoreConsole
                                 {
                                     if (_fields.Value.Count == _values.Value.Count)
                                     {
-                                        output = output + " --row " + _row.Value;
+                                        output += " --row " + _row.Value;
                                         List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
                                         for (int i = 0; i < _fields.Value.Count; i += 1)
                                         {
-                                            output = output + " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
+                                            output += " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
                                             record.Add(new KeyValuePair<string, object>(_fields.Value[i], _values.Value[i]));
                                         }
                                         if ((record.Count > 0) && (_row.Value >= 0))
@@ -737,12 +751,12 @@ namespace DatastoreConsole
                             StringBuilder builder = new StringBuilder();
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --all | --row ROW";
+                                output += " --filename FILE [--filepath PATH] --all | --row ROW";
                                 Console.WriteLine(output);
                             }
                             else if (_all.Value == true)
                             {
-                                output = output + " --all";
+                                output += " --all";
                                 Console.WriteLine(output);
                                 List<List<KeyValuePair<string, object>>> records = _dataStore.Read();
                                 if (records.Count > 0)
@@ -783,7 +797,7 @@ namespace DatastoreConsole
                             }
                             else
                             {
-                                output = output + String.Format(" --row {0}", _row.Value);
+                                output += String.Format(" --row {0}", _row.Value);
                                 Console.WriteLine(output);
                                 List<KeyValuePair<string, object>> record = _dataStore.Read(_row.Value);
                                 if (record.Count > 0)
@@ -821,7 +835,7 @@ namespace DatastoreConsole
                             string output = "UPDATE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --row ROW --field \"FIELD\" --value \"VALUE\"";
+                                output += " --filename FILE [--filepath PATH] --row ROW --field \"FIELD\" --value \"VALUE\"";
                                 Console.WriteLine(output);
                             }
                             else
@@ -830,11 +844,11 @@ namespace DatastoreConsole
                                 {
                                     if (_fields.Value.Count == _values.Value.Count)
                                     {
-                                        output = output + " --row " + _row.Value;
+                                        output += " --row " + _row.Value;
                                         List<KeyValuePair<string, object>> record = new List<KeyValuePair<string, object>>();
                                         for (int i = 0; i < _fields.Value.Count; i += 1)
                                         {
-                                            output = output + " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
+                                            output += " --field \"" + _fields.Value[i] + "\" --value \"" + _values.Value[i] + "\" ";
                                             record.Add(new KeyValuePair<string, object>(_fields.Value[i], _values.Value[i]));
                                         }
                                         if ((record.Count > 0) && (_row.Value >= 0))
@@ -852,20 +866,20 @@ namespace DatastoreConsole
                             string output = "DELETE";
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --all | --row ROW";
+                                output += " --filename FILE [--filepath PATH] --all | --row ROW";
                                 Console.WriteLine(output);
                             }
                             else
                             {
                                 if (_all.Value == true)
                                 {
-                                    output = output + " --all";
+                                    output += " --all";
                                     Console.WriteLine(output);
                                     _dataStore.Delete();
                                 }
                                 else
                                 {
-                                    output = output + " --row " + _row.Value;
+                                    output += " --row " + _row.Value;
                                     Console.WriteLine(output);
                                     _dataStore.Delete(_row.Value);
                                 }
@@ -878,12 +892,12 @@ namespace DatastoreConsole
                             StringBuilder builder = new StringBuilder();
                             if (_help == true)
                             {
-                                output = output + " --filename FILE [--filepath PATH] --value VALUE --";
+                                output += " --filename FILE [--filepath PATH] --value VALUE --";
                                 Console.WriteLine(output);
                             }
                             else
                             {
-                                output = output + " --value " + _value.Value;
+                                output += " --value " + _value.Value;
                                 Console.WriteLine(output);
                                 int row = _dataStore.Find(_value.Value);
                                 if (row > -1)
@@ -923,8 +937,6 @@ namespace DatastoreConsole
                 }
                 errorCode = 0;
             }
-
-            Debug.WriteLine("Exit Main()");
             return (errorCode);
         }
 

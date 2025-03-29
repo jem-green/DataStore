@@ -5,7 +5,8 @@
       "distributionName": ""
     },
     "Datastore": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--version"
     }
   }
 }

@@ -21,14 +21,5 @@
   how do you do a full insert
   
   
-  STORAGE --name "datastore.dbf" 
 
-  
-  STORAGE records create  
-  
-  STORAGE fields list
-  
-  STORAGE field get
-  
-  STORAGE field set 
   
